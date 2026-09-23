@@ -1,0 +1,724 @@
+/* CareerPathsPage.css - AI Career Path Generator & Guidance Portal */
+
+.career-paths-root {
+  min-height: 100vh;
+  padding-bottom: 90px;
+}
+
+/* Hero Section */
+.career-hero-banner {
+  padding: 60px 0 35px 0;
+  background: radial-gradient(circle at 50% 0%, rgba(99, 91, 255, 0.08) 0%, rgba(248, 249, 254, 0) 70%);
+}
+
+.hero-header-card {
+  padding: 40px 36px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 32px;
+  background: var(--card-bg-white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.hero-title-group {
+  max-width: 680px;
+}
+
+.hero-main-title {
+  font-size: 2.3rem;
+  font-weight: 800;
+  line-height: 1.25;
+  color: var(--text-main);
+  margin-bottom: 12px;
+}
+
+.hero-main-subtitle {
+  font-size: 1.05rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.ai-counselor-callout-box {
+  background: linear-gradient(135deg, rgba(99, 91, 255, 0.06) 0%, rgba(139, 92, 246, 0.03) 100%);
+  border: 1px solid var(--border-purple);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  text-align: center;
+  min-width: 280px;
+}
+
+.callout-icon-circle {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--primary-gradient);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-btn-glow);
+}
+
+.callout-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 6px;
+}
+
+.callout-desc {
+  font-size: 0.86rem;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+/* Control Navigation Bar */
+.career-control-bar {
+  margin-top: 24px;
+  padding: 16px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.domain-tabs-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.domain-tab-btn {
+  padding: 10px 18px;
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
+  background: var(--bg-subtle);
+  color: var(--text-body);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.domain-tab-btn:hover {
+  background: var(--border-light);
+  color: var(--text-main);
+}
+
+.domain-tab-btn.active {
+  background: var(--primary-gradient);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(99, 91, 255, 0.35);
+}
+
+.career-search-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-full);
+  padding: 8px 18px;
+  min-width: 260px;
+}
+
+.career-search-box input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.9rem;
+  width: 100%;
+  color: var(--text-main);
+}
+
+/* Domain Overview Cards Grid */
+.domain-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 24px;
+  margin-top: 28px;
+}
+
+.domain-overview-card {
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+  border: 1px solid var(--border-light);
+  position: relative;
+  overflow: hidden;
+}
+
+.domain-overview-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--primary-gradient);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.domain-overview-card:hover::before {
+  opacity: 1;
+}
+
+.domain-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.domain-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.domain-icon-wrapper.purple { background: rgba(99, 91, 255, 0.15); color: var(--primary-purple); }
+.domain-icon-wrapper.blue { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+.domain-icon-wrapper.green { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+.domain-icon-wrapper.orange { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+.domain-icon-wrapper.pink { background: rgba(236, 72, 153, 0.15); color: #ec4899; }
+.domain-icon-wrapper.dark { background: var(--bg-subtle); color: var(--text-main); }
+
+.demand-badge {
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.domain-card-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 8px;
+}
+
+.domain-card-desc {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.55;
+  margin-bottom: 20px;
+}
+
+.domain-metrics-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  background: var(--bg-subtle);
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 20px;
+}
+
+.metric-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.metric-value {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.skill-tags-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.skill-tag-pill {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--radius-xs);
+  background: var(--bg-subtle);
+  color: var(--text-body);
+}
+
+.view-roadmap-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 0.9rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* Interactive Visual Roadmap Workspace */
+.roadmap-workspace-section {
+  margin-top: 36px;
+}
+
+.roadmap-header-card {
+  padding: 28px 32px;
+  margin-bottom: 28px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.roadmap-title-box {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.back-to-domains-btn {
+  padding: 8px 14px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-light);
+  background: var(--card-bg-white);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.back-to-domains-btn:hover {
+  color: var(--primary-purple);
+  border-color: var(--primary-purple);
+}
+
+.active-domain-title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.roadmap-progress-box {
+  min-width: 260px;
+}
+
+.progress-info-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.86rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--text-main);
+}
+
+.progress-bar-bg {
+  height: 10px;
+  background: var(--bg-subtle);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: var(--primary-gradient);
+  border-radius: var(--radius-full);
+  transition: width 0.4s ease;
+}
+
+/* Interactive Timeline Node Tree Graph */
+.roadmap-timeline-graph {
+  position: relative;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px 0;
+}
+
+.roadmap-timeline-graph::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 32px;
+  width: 4px;
+  background: linear-gradient(180deg, var(--primary-purple) 0%, var(--border-light) 100%);
+  border-radius: 2px;
+  z-index: 1;
+}
+
+.roadmap-stage-node {
+  position: relative;
+  padding-left: 80px;
+  margin-bottom: 32px;
+}
+
+.node-icon-circle {
+  position: absolute;
+  left: 12px;
+  top: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--card-bg-white);
+  border: 3px solid var(--primary-purple);
+  color: var(--primary-purple);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  z-index: 2;
+  box-shadow: 0 4px 12px rgba(99, 91, 255, 0.2);
+}
+
+.roadmap-stage-node.completed .node-icon-circle {
+  background: #10b981;
+  border-color: #10b981;
+  color: #ffffff;
+}
+
+.stage-card-body {
+  padding: 24px 28px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+}
+
+.stage-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.stage-num-badge {
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--primary-purple);
+}
+
+.stage-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.stage-duration-tag {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-subtle);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+}
+
+.stage-desc {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-bottom: 18px;
+}
+
+.subtopics-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.subtopic-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--bg-subtle);
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.subtopic-item:hover {
+  background: var(--bg-input);
+}
+
+.subtopic-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary-purple);
+  cursor: pointer;
+}
+
+.subtopic-label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.subtopic-item.checked .subtopic-label {
+  text-decoration: line-through;
+  color: var(--text-light);
+}
+
+.resources-footer-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-light);
+  flex-wrap: wrap;
+}
+
+.resource-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.resource-chip-link {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--radius-xs);
+  background: rgba(99, 91, 255, 0.15);
+  color: var(--primary-purple);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+}
+
+.resource-chip-link:hover {
+  background: var(--primary-purple);
+  color: #ffffff;
+}
+
+/* Exam Readiness Portal */
+.exam-portal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.exam-card {
+  padding: 28px;
+}
+
+.exam-card-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.exam-badge-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  background: var(--primary-gradient);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 1.1rem;
+}
+
+.exam-name {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.exam-target-sub {
+  font-size: 0.84rem;
+  color: var(--text-muted);
+}
+
+.exam-stats-list {
+  list-style: none;
+  margin-bottom: 20px;
+}
+
+.exam-stats-list li {
+  font-size: 0.88rem;
+  color: var(--text-body);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* AI Counselor Modal */
+.counselor-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(6px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.counselor-modal-card {
+  width: 100%;
+  max-width: 620px;
+  background: var(--bg-modal);
+  color: var(--text-main);
+  border: 1px solid var(--border-purple);
+  border-radius: var(--radius-lg);
+  padding: 36px;
+  position: relative;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-card-hover);
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: var(--bg-subtle);
+  color: var(--text-main);
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.counselor-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.counselor-header h3 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 6px;
+}
+
+.form-field-group {
+  margin-bottom: 18px;
+}
+
+.form-field-group label {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 6px;
+  display: block;
+}
+
+.form-field-group select,
+.form-field-group input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border-light);
+  background: var(--bg-input);
+  color: var(--text-main);
+  outline: none;
+  font-size: 0.9rem;
+}
+
+.counselor-result-box {
+  background: var(--glow-gradient);
+  border: 1px solid var(--border-purple);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  margin-top: 20px;
+}
+
+.result-match-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.match-percentage-badge {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--primary-purple);
+  background: var(--card-bg-white);
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  box-shadow: 0 2px 8px rgba(99, 91, 255, 0.15);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .hero-header-card {
+    flex-direction: column;
+    text-align: center;
+    padding: 28px 20px;
+  }
+
+  .career-control-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .career-search-box {
+    width: 100%;
+  }
+
+  .domain-cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .roadmap-stage-node {
+    padding-left: 54px;
+  }
+
+  .roadmap-timeline-graph::before {
+    left: 18px;
+  }
+
+  .node-icon-circle {
+    left: 0;
+    width: 36px;
+    height: 36px;
+  }
+}

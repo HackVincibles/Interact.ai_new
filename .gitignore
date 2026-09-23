@@ -1,0 +1,38 @@
+# ==========================================
+# INTERACT.AI MASTER MONOREPO .GITIGNORE
+# ==========================================
+
+# 1. Dependency directories
+node_modules/
+**/node_modules/
+
+# 2. Environment Variable Files (SENSITIVE CREDENTIALS)
+.env
+.env.local
+.env.*.local
+*.env
+**/.env
+**/.env.local
+
+# 3. Build & Distribution Output
+dist/
+**/dist/
+build/
+**/build/
+.output/
+
+# 4. Logs and databases
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.sqlite
+
+# 5. OS & IDE Metadata
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.suo
+*.user

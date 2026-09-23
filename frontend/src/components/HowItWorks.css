@@ -1,0 +1,228 @@
+.how-it-works-section {
+  padding: 80px 0;
+  background: var(--bg-page);
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.how-it-works-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 60px;
+  align-items: center;
+}
+
+.steps-content .section-title {
+  text-align: left;
+}
+
+.steps-content .section-subtitle {
+  text-align: left;
+  margin-bottom: 32px;
+}
+
+/* Timeline steps */
+.steps-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-bottom: 36px;
+  position: relative;
+}
+
+.steps-timeline::before {
+  content: '';
+  position: absolute;
+  top: 20px;
+  left: 18px;
+  bottom: 20px;
+  width: 2px;
+  background: var(--border-purple);
+  z-index: 1;
+}
+
+.step-item {
+  display: flex;
+  gap: 20px;
+  position: relative;
+  z-index: 2;
+}
+
+.step-number {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--primary-gradient);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(99, 91, 255, 0.3);
+}
+
+.step-details {
+  background: #ffffff;
+  padding: 16px 20px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-subtle);
+  flex: 1;
+}
+
+.step-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 4px;
+}
+
+.step-desc {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.steps-cta {
+  padding: 14px 28px;
+}
+
+/* Laptop Mockup Visual */
+.laptop-preview-container {
+  display: flex;
+  justify-content: center;
+}
+
+.laptop-frame {
+  width: 100%;
+  max-width: 460px;
+  position: relative;
+}
+
+.laptop-screen {
+  background: #1e1b4b;
+  border-radius: 14px 14px 0 0;
+  padding: 10px;
+  border: 4px solid #334155;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.screen-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #334155;
+  margin-bottom: 12px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.dot.red { background: #ef4444; }
+.dot.yellow { background: #f59e0b; }
+.dot.green { background: #10b981; }
+
+.screen-url {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  margin-left: 10px;
+  font-family: monospace;
+}
+
+.screen-body {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mock-card {
+  background: var(--bg-page);
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-purple);
+}
+
+.mock-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: var(--primary-purple);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.mock-card h4 {
+  font-size: 0.95rem;
+  color: var(--text-main);
+  margin-bottom: 4px;
+}
+
+.mock-card p {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.progress-bar-bg {
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: var(--primary-gradient);
+}
+
+.mock-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.mock-subcard {
+  background: var(--bg-subtle);
+  padding: 10px;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+}
+
+.mock-subcard span { font-size: 0.7rem; color: var(--text-muted); }
+.mock-subcard strong { font-size: 0.82rem; color: var(--text-main); }
+
+.mock-match {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #dcfce7;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #166534;
+}
+
+.laptop-base {
+  height: 14px;
+  background: #64748b;
+  border-radius: 0 0 16px 16px;
+  width: 110%;
+  margin-left: -5%;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 960px) {
+  .how-it-works-grid {
+    grid-template-columns: 1fr;
+  }
+}

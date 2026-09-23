@@ -1,0 +1,275 @@
+/* ResumeStudioPage.css - AI Resume Studio & ATS Scanner */
+
+.resume-studio-root {
+  min-height: 100vh;
+  padding-bottom: 90px;
+}
+
+/* Hero Section */
+.resume-hero-section {
+  padding: 60px 0 35px 0;
+  background: radial-gradient(circle at 50% 0%, rgba(99, 91, 255, 0.08) 0%, rgba(248, 249, 254, 0) 70%);
+}
+
+.resume-hero-card {
+  padding: 40px 36px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 32px;
+  background: var(--card-bg-white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.resume-title-group {
+  max-width: 680px;
+}
+
+.resume-main-title {
+  font-size: 2.3rem;
+  font-weight: 800;
+  line-height: 1.25;
+  color: var(--text-main);
+  margin-bottom: 12px;
+}
+
+.resume-main-subtitle {
+  font-size: 1.05rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.ats-score-preview-box {
+  background: linear-gradient(135deg, rgba(99, 91, 255, 0.08) 0%, rgba(139, 92, 246, 0.03) 100%);
+  border: 1px solid var(--border-purple);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  text-align: center;
+  min-width: 270px;
+}
+
+.score-dial-circle {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--primary-gradient);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 1.4rem;
+  margin-bottom: 8px;
+  box-shadow: var(--shadow-btn-glow);
+}
+
+.score-box-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.score-box-sub {
+  font-size: 0.8rem;
+  color: #059669;
+  font-weight: 700;
+}
+
+/* Mode Switcher Tabs */
+.resume-mode-bar {
+  margin-top: 24px;
+  padding: 12px 20px;
+  display: flex;
+  gap: 12px;
+}
+
+.mode-tab-btn {
+  padding: 10px 24px;
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
+  background: var(--bg-subtle);
+  color: var(--text-body);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mode-tab-btn.active {
+  background: var(--primary-gradient);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(99, 91, 255, 0.35);
+}
+
+/* Two Column Workspace Grid */
+.resume-workspace-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  margin-top: 28px;
+}
+
+.scanner-left-panel,
+.scanner-right-panel {
+  padding: 32px;
+}
+
+.panel-header-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.upload-dropzone {
+  border: 2px dashed var(--border-purple);
+  background: rgba(99, 91, 255, 0.05);
+  border-radius: var(--radius-md);
+  padding: 36px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  margin-bottom: 24px;
+}
+
+.upload-dropzone:hover {
+  background: rgba(99, 91, 255, 0.1);
+  border-color: var(--primary-purple);
+}
+
+.dropzone-icon {
+  color: var(--primary-purple);
+  margin-bottom: 10px;
+}
+
+.jd-textarea {
+  width: 100%;
+  height: 160px;
+  padding: 14px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border-light);
+  background: var(--bg-input);
+  outline: none;
+  font-family: var(--font-sans);
+  font-size: 0.88rem;
+  resize: vertical;
+  color: var(--text-main);
+}
+
+/* ATS Results Breakdown */
+.ats-metrics-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.metric-bar-item {
+  background: var(--bg-subtle);
+  padding: 14px 18px;
+  border-radius: var(--radius-xs);
+}
+
+.metric-bar-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.88rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.metric-progress-bg {
+  height: 8px;
+  background: var(--bg-page);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.metric-progress-fill {
+  height: 100%;
+  background: var(--primary-gradient);
+}
+
+.missing-keywords-box {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  margin-top: 24px;
+}
+
+.missing-keywords-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #f59e0b;
+  margin-bottom: 12px;
+}
+
+.keyword-pills-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.missing-keyword-chip {
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: var(--radius-xs);
+  background: var(--card-bg-white);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.missing-keyword-chip:hover {
+  background: rgba(245, 158, 11, 0.2);
+}
+
+/* AI Bullet Enhancer */
+.bullet-enhancer-card {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  margin-top: 24px;
+}
+
+.original-bullet-text {
+  font-size: 0.86rem;
+  color: var(--text-muted);
+  text-decoration: line-through;
+  margin-bottom: 8px;
+}
+
+.enhanced-bullet-text {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--primary-purple);
+  line-height: 1.5;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .resume-hero-card {
+    flex-direction: column;
+    text-align: center;
+    padding: 28px 20px;
+  }
+
+  .resume-workspace-grid {
+    grid-template-columns: 1fr;
+  }
+}

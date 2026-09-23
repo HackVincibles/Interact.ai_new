@@ -1,0 +1,66 @@
+.auth-guard-section {
+  padding: 90px 24px;
+  display: flex;
+  justify-content: center;
+}
+
+.auth-guard-card {
+  max-width: 580px;
+  width: 100%;
+  padding: 56px 40px;
+  text-align: center;
+  background: #ffffff;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-purple);
+  box-shadow: 0 20px 50px -10px rgba(99, 91, 255, 0.12);
+}
+
+.guard-icon-wrapper {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: var(--badge-purple-bg);
+  color: var(--primary-purple);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px auto;
+}
+
+.guard-title {
+  font-size: 2.1rem;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.6px;
+  margin: 10px 0 12px 0;
+}
+
+.guard-subtitle {
+  font-size: 1.02rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-bottom: 32px;
+}
+
+.guard-actions-row {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.guard-btn {
+  padding: 14px 24px;
+  font-size: 0.96rem;
+}
+
+.guard-footer-note {
+  font-size: 0.85rem;
+  color: var(--text-light);
+}
+
+@media (max-width: 540px) {
+  .guard-actions-row {
+    flex-direction: column;
+  }
+}

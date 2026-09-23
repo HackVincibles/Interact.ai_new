@@ -1,0 +1,171 @@
+.interview-lobby-root {
+  min-height: 100vh;
+  background: var(--bg-page);
+  padding: 40px 0 80px 0;
+}
+
+.lobby-header {
+  padding: 36px 40px;
+  margin-bottom: 28px;
+}
+
+.lobby-title {
+  font-size: 2.1rem;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.6px;
+  margin: 6px 0 8px 0;
+}
+
+.lobby-sub {
+  font-size: 1rem;
+  color: var(--text-muted);
+}
+
+.lobby-grid-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+}
+
+.lobby-left-col,
+.lobby-right-col {
+  padding: 32px;
+}
+
+.preview-heading,
+.checklist-heading {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 20px;
+}
+
+.video-preview-frame {
+  position: relative;
+  width: 100%;
+  height: 280px;
+  background: #0f172a;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.video-element {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.video-placeholder-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #94a3b8;
+  background: rgba(15, 23, 42, 0.9);
+}
+
+.test-btn {
+  padding: 10px 20px;
+  font-size: 0.88rem;
+}
+
+.device-status-row {
+  display: flex;
+  gap: 14px;
+}
+
+.status-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: var(--radius-full);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.status-badge.ok { background: #dcfce7; color: #15803d; }
+.status-badge.pending { background: #fef3c7; color: #92400e; }
+
+/* Permissions Checklist */
+.permissions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.perm-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-page);
+  border: 1px solid var(--border-light);
+}
+
+.perm-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.perm-info strong { font-size: 0.92rem; color: var(--text-main); display: block; }
+.perm-info p { font-size: 0.78rem; color: var(--text-muted); }
+
+.perm-icon {
+  padding: 8px;
+  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+}
+
+.perm-icon.purple { background: #f3e8ff; color: #9333ea; }
+.perm-icon.blue { background: #e0f2fe; color: #0284c7; }
+.perm-icon.orange { background: #ffedd5; color: #ea580c; }
+
+.perm-check-btn {
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-light);
+  background: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.perm-check-btn.active {
+  background: var(--primary-purple);
+  color: #ffffff;
+  border-color: var(--primary-purple);
+}
+
+.consent-checkbox-group {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.consent-checkbox-group label {
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.launch-studio-btn {
+  width: 100%;
+  padding: 16px;
+  font-size: 1.05rem;
+}
+
+@media (max-width: 900px) {
+  .lobby-grid-layout { grid-template-columns: 1fr; }
+}

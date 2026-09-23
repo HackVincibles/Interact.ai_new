@@ -1,0 +1,86 @@
+.callout-section {
+  padding: 40px 0 80px 0;
+}
+
+.callout-card {
+  background: linear-gradient(135deg, #eeecff 0%, #e0e7ff 100%);
+  border: 1px solid var(--border-purple);
+  border-radius: var(--radius-xl);
+  padding: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 12px 32px rgba(99, 91, 255, 0.12);
+}
+
+.callout-content {
+  max-width: 580px;
+  position: relative;
+  z-index: 2;
+}
+
+.callout-badge {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--primary-purple);
+  margin-bottom: 10px;
+  display: block;
+}
+
+.callout-title {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--text-main);
+  line-height: 1.25;
+  margin-bottom: 14px;
+}
+
+.callout-title span {
+  color: var(--primary-purple);
+}
+
+.callout-desc {
+  font-size: 1.05rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 28px;
+}
+
+.callout-btn {
+  padding: 14px 28px;
+  font-size: 1.05rem;
+}
+
+.callout-visual {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cap-icon-circle {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: var(--primary-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 16px 36px rgba(99, 91, 255, 0.35);
+  animation: float 4s ease-in-out infinite;
+}
+
+@media (max-width: 860px) {
+  .callout-card {
+    flex-direction: column;
+    text-align: center;
+    padding: 36px 24px;
+    gap: 32px;
+  }
+  .callout-title { font-size: 1.8rem; }
+  .callout-content { max-width: 100%; }
+}
