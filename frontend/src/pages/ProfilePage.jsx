@@ -878,7 +878,6 @@ export default function ProfilePage({ currentUser, onNavigate }) {
               <button className="btn-primary-purple" onClick={handleAddExperience}>Add Experience</button>
             </div>
           </div>
-          </div>
         </div>
       )}
 
