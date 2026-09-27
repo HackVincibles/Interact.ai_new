@@ -37,6 +37,8 @@ CREATE TABLE IF NOT EXISTS interviews (
     questions JSONB,
     score INT,
     feedback TEXT,
+    practice_mode VARCHAR(50) DEFAULT 'full',
+    round_type VARCHAR(50),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 

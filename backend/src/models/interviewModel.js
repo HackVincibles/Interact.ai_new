@@ -3,13 +3,13 @@ import { dbPool } from '../config/database.js';
 
 export class InterviewModel {
   static async saveInterviewSession(interviewData) {
-    const { userId, domain, targetRole, questions, score, feedback } = interviewData;
+    const { userId, domain, targetRole, questions, score, feedback, practiceMode, roundType } = interviewData;
     try {
       const result = await dbPool.query(
-        `INSERT INTO interviews (user_id, domain, target_role, questions, score, feedback)
-         VALUES ($1, $2, $3, $4, $5, $6)
+        `INSERT INTO interviews (user_id, domain, target_role, questions, score, feedback, practice_mode, round_type)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
          RETURNING *`,
-        [userId || null, domain, targetRole, JSON.stringify(questions), score || 0, feedback || '']
+        [userId || null, domain, targetRole, JSON.stringify(questions), score || 0, feedback || '', practiceMode || 'full', roundType || null]
       );
       return result.rows[0];
     } catch (err) {

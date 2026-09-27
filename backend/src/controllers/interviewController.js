@@ -78,3 +78,16 @@ export const getReportById = async (req, res, next) => {
     next(error);
   }
 };
+
+export const getHistory = async (req, res, next) => {
+  try {
+    const userId = req.user?.id || req.query.userId || 1; // Fallback to 1 if not provided for testing
+    const history = await InterviewModel.getHistoryByUserId(userId);
+    res.json({
+      success: true,
+      history,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

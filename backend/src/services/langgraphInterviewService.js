@@ -7,24 +7,39 @@ export class LangGraphInterviewService {
   /**
    * Initializes a new stateful AI Interview Session (HR, Technical, DSA, System Design, Resume-based).
    */
-  static async startInterviewSession({ userId, interviewType, targetRole, domain, resumeText, jobDescription }) {
+  static async startInterviewSession({ userId, interviewType, targetRole, domain, resumeText, jobDescription, practiceMode = 'full', roundType = null }) {
     const sessionId = `SESSION_${Date.now()}`;
     
-    // Generate initial contextual question plan using Gemini
-    const planPrompt = `
+    let planPrompt = '';
+    
+    if (practiceMode === 'targeted') {
+      planPrompt = `
+You are an expert AI Interviewer conducting a targeted PRACTICE session for the '${roundType}' round.
+Topic/Domain: '${domain || roundType}'.
+Candidate Resume Highlights: "${(resumeText || '').slice(0, 1000)}"
+
+Generate a sequence of 3 high-impact questions specifically focused on ${roundType}.
+If round is 'Aptitude', ask quantitative or logical reasoning questions.
+If round is 'HR', ask behavioral or situational questions.
+If round is 'Technical' or 'Coding', ask technical concept or coding-related questions.
+Return ONLY a JSON array of strings: ["Question 1...", "Question 2...", "Question 3..."].
+`;
+    } else {
+      planPrompt = `
 You are an expert AI Tech Interviewer conducting a realistic ${interviewType || 'Technical SDE-1'} interview for role '${targetRole || 'Software Development Engineer'}'.
 Domain: '${domain || 'DSA & Web Architecture'}'.
 Candidate Resume Highlights: "${(resumeText || '').slice(0, 1000)}"
 Target Job Description: "${(jobDescription || '').slice(0, 1000)}"
 
 Generate a sequence of 3 high-impact contextual technical & architectural questions.
-Return JSON array of strings: ["Question 1...", "Question 2...", "Question 3..."].
+Return ONLY a JSON array of strings: ["Question 1...", "Question 2...", "Question 3..."].
 `;
+    }
 
     let initialQuestions = [
-      `Could you explain the system architecture and technical challenges of your primary software project?`,
-      `How do you handle concurrency, caching, and database state when building web APIs under high load?`,
-      `Given an integer array, how do you find all unique triplets that sum to zero with optimal time complexity?`,
+      practiceMode === 'targeted' ? `Let's start your targeted ${roundType} practice. Could you walk me through a core concept in this area?` : `Could you explain the system architecture and technical challenges of your primary software project?`,
+      practiceMode === 'targeted' ? `Can you give an example of a difficult problem you solved related to ${roundType}?` : `How do you handle concurrency, caching, and database state when building web APIs under high load?`,
+      practiceMode === 'targeted' ? `Finally, what is a key takeaway you've learned while studying ${roundType}?` : `Given an integer array, how do you find all unique triplets that sum to zero with optimal time complexity?`,
     ];
 
     try {
@@ -44,6 +59,8 @@ Return JSON array of strings: ["Question 1...", "Question 2...", "Question 3..."
       interviewType: interviewType || 'Technical SDE-1',
       targetRole: targetRole || 'Software Development Engineer',
       domain: domain || 'DSA & Web Development',
+      practiceMode,
+      roundType,
       status: 'QUESTIONING',
       currentQuestionIndex: 0,
       questions: initialQuestions,
@@ -61,6 +78,8 @@ Return JSON array of strings: ["Question 1...", "Question 2...", "Question 3..."
       targetRole: sessionState.targetRole,
       questions: initialQuestions,
       score: 0,
+      practiceMode: sessionState.practiceMode,
+      roundType: sessionState.roundType,
     });
 
     const realSessionId = savedRecord.id.toString();
@@ -135,9 +154,48 @@ Return JSON format:
    * Generates a 50-Parameter Final AI Evaluation Report upon completion.
    */
   static async generateFinalReport({ sessionId, answersHistory = [], evaluationsHistory = [] }) {
+    let practiceMode = 'full';
+    let roundType = null;
+    let interviewDomain = '';
+
+    if (sessionId && !sessionId.startsWith('SESSION_')) {
+      const interview = await InterviewModel.getInterviewById(sessionId);
+      if (interview) {
+        practiceMode = interview.practice_mode || 'full';
+        roundType = interview.round_type;
+        interviewDomain = interview.domain || '';
+      }
+    }
+
     const transcriptText = answersHistory.map(h => `${h.sender === 'interviewer' ? 'Interviewer' : 'Candidate'}: ${h.text}`).join('\n');
 
-    const reportPrompt = `
+    let reportPrompt = '';
+    if (practiceMode === 'targeted') {
+      reportPrompt = `
+You are an expert AI Interviewer. Evaluate this transcript for a targeted '${roundType}' practice session (Domain: ${interviewDomain}). 
+Generate a comprehensive report based ONLY on this candidate's actual performance. Do not use generic feedback; refer to specific things the candidate said.
+If the candidate did not answer any questions, give them a score of 0 and state that they did not participate.
+
+Interview Transcript:
+${transcriptText || '(No transcript provided)'}
+
+Return ONLY valid JSON format with schema exactly matching:
+{
+  "overallScore": number (0-100),
+  "technicalKnowledge": number (0-100),
+  "communication": number (0-100),
+  "problemSolving": number (0-100),
+  "strengths": ["...", "..."],
+  "weaknesses": ["...", "..."],
+  "topicsToImprove": ["...", "..."],
+  "questionFeedback": [
+    { "q": "summary of question asked", "score": number, "note": "specific feedback on their answer" }
+  ],
+  "recommendedPractice": "actionable study plan"
+}
+`;
+    } else {
+      reportPrompt = `
 You are an expert AI Tech Interviewer. Evaluate this interview transcript and generate a comprehensive AI Candidate Interview Report based ONLY on this candidate's actual performance. Do not use generic feedback; refer to specific things the candidate said.
 If the candidate did not answer any questions or the transcript is empty/too short, give them a score of 0 and state that they did not participate.
 
@@ -159,6 +217,7 @@ Return ONLY valid JSON format with schema exactly matching:
   "recommendedPractice": "actionable study plan"
 }
 `;
+    }
 
     let report = {
       overallScore: 0,

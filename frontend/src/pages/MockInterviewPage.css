@@ -361,3 +361,83 @@
     height: auto;
   }
 }
+
+/* Practice Arena Styles */
+.practice-rounds-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.practice-round-card {
+  padding: 24px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.practice-round-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--primary-purple);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.round-icon-box {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  background: rgba(168, 85, 247, 0.1);
+  color: var(--primary-purple);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.practice-link {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--primary-purple);
+  display: flex;
+  align-items: center;
+  margin-top: auto;
+  opacity: 0;
+  transform: translateX(-10px);
+  transition: all 0.2s ease;
+}
+
+.practice-round-card:hover .practice-link {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.full-interview-card:hover {
+  border-color: var(--primary-purple);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.practice-history-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.history-item:last-child {
+  border-bottom: none;
+}
+
+.history-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
