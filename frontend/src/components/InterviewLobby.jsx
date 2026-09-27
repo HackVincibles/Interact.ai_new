@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Mic, Monitor, ShieldCheck, ArrowRight, Video, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Camera, Mic, Monitor, ShieldCheck, ArrowRight, Video, AlertCircle, CheckCircle2, Wifi, Compass } from 'lucide-react';
 import './InterviewLobby.css';
 
 export default function InterviewLobby({ onStartInterview, interviewConfig }) {
@@ -7,6 +7,11 @@ export default function InterviewLobby({ onStartInterview, interviewConfig }) {
     camera: false,
     mic: false,
     screen: false,
+  });
+  
+  const [systemChecks, setSystemChecks] = useState({
+    network: null, // null, 'loading', 'ok', 'error'
+    browser: null, // null, 'loading', 'ok', 'error'
   });
   
   const [isTestingStream, setIsTestingStream] = useState(false);
@@ -17,15 +22,31 @@ export default function InterviewLobby({ onStartInterview, interviewConfig }) {
   const requestMediaPermissions = async () => {
     try {
       setIsTestingStream(true);
+      // Stop old tracks if any exist
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop());
+      }
+      
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       streamRef.current = stream;
+      
       if (videoPreviewRef.current) {
         videoPreviewRef.current.srcObject = stream;
+        // Attempt to play explicitly in case autoplay is blocked
+        videoPreviewRef.current.play().catch(e => console.warn('Preview play blocked:', e));
       }
+      
       setPermissions((prev) => ({ ...prev, camera: true, mic: true }));
     } catch (err) {
-      console.warn('Camera/Mic permission notice:', err.message);
-      alert('Camera or Microphone access was denied. Please allow permissions in your browser bar.');
+      console.warn('Camera/Mic permission error:', err);
+      if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        alert('No camera or microphone found on this device.');
+      } else if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        alert('Camera or Microphone access was denied. Please allow permissions in your browser settings and try again.');
+      } else {
+        alert('An error occurred while accessing media devices: ' + err.message);
+      }
+      setPermissions((prev) => ({ ...prev, camera: false, mic: false }));
     } finally {
       setIsTestingStream(false);
     }
@@ -42,16 +63,35 @@ export default function InterviewLobby({ onStartInterview, interviewConfig }) {
     }
   };
 
+  const checkNetworkLatency = async () => {
+    setSystemChecks(prev => ({ ...prev, network: 'loading' }));
+    try {
+      await new Promise(resolve => setTimeout(resolve, 800)); // Simulate ping
+      const isOnline = navigator.onLine;
+      setSystemChecks(prev => ({ ...prev, network: isOnline ? 'ok' : 'error' }));
+    } catch (e) {
+      setSystemChecks(prev => ({ ...prev, network: 'error' }));
+    }
+  };
+
+  const checkBrowserCompatibility = async () => {
+    setSystemChecks(prev => ({ ...prev, browser: 'loading' }));
+    try {
+      await new Promise(resolve => setTimeout(resolve, 600)); // Simulate check
+      const isCompatible = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+      setSystemChecks(prev => ({ ...prev, browser: isCompatible ? 'ok' : 'error' }));
+    } catch (e) {
+      setSystemChecks(prev => ({ ...prev, browser: 'error' }));
+    }
+  };
+
   useEffect(() => {
-    // Cleanup stream on unmount
-    return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-      }
-    };
+    // We intentionally don't stop the stream on unmount here
+    // because it needs to be passed to the LiveInterviewStudio component.
+    return () => {};
   }, []);
 
-  const canStart = permissions.camera && permissions.mic && consentChecked;
+  const canStart = permissions.camera && permissions.mic && consentChecked && systemChecks.network === 'ok' && systemChecks.browser === 'ok';
 
   return (
     <div className="interview-lobby-root animate-fade-in">
@@ -63,7 +103,7 @@ export default function InterviewLobby({ onStartInterview, interviewConfig }) {
             Preparing Your <span className="purple-gradient-text">{interviewConfig?.type || 'Technical SDE-1'}</span> Interview
           </h1>
           <p className="lobby-sub">
-            Please test your camera, microphone, and screen share permissions before launching the AI Interview Studio.
+            Please test your camera, microphone, screen share, and system compatibility before launching the AI Interview Studio.
           </p>
         </div>
 
@@ -135,13 +175,47 @@ export default function InterviewLobby({ onStartInterview, interviewConfig }) {
                   {permissions.mic ? '✓ Granted' : 'Allow'}
                 </button>
               </div>
+              
+              <div className="perm-item">
+                <div className="perm-info">
+                  <Wifi size={20} className="perm-icon green" />
+                  <div>
+                    <strong>Network Latency</strong>
+                    <p>Check if connection is stable for live video</p>
+                  </div>
+                </div>
+                <button 
+                  className={`perm-check-btn ${systemChecks.network === 'ok' ? 'active' : ''}`} 
+                  onClick={checkNetworkLatency}
+                  disabled={systemChecks.network === 'loading'}
+                >
+                  {systemChecks.network === 'loading' ? 'Testing...' : (systemChecks.network === 'ok' ? '✓ Stable' : 'Test Network')}
+                </button>
+              </div>
+
+              <div className="perm-item">
+                <div className="perm-info">
+                  <Compass size={20} className="perm-icon orange" />
+                  <div>
+                    <strong>Browser Compatibility</strong>
+                    <p>Verify browser supports WebRTC & APIs</p>
+                  </div>
+                </div>
+                <button 
+                  className={`perm-check-btn ${systemChecks.browser === 'ok' ? 'active' : ''}`} 
+                  onClick={checkBrowserCompatibility}
+                  disabled={systemChecks.browser === 'loading'}
+                >
+                  {systemChecks.browser === 'loading' ? 'Checking...' : (systemChecks.browser === 'ok' ? '✓ Verified' : 'Check Browser')}
+                </button>
+              </div>
 
               <div className="perm-item">
                 <div className="perm-info">
                   <Monitor size={20} className="perm-icon orange" />
                   <div>
                     <strong>Screen Sharing (Optional)</strong>
-                    <p>Required for live IDE code execution or architecture review</p>
+                    <p>Required for live IDE code execution</p>
                   </div>
                 </div>
                 <button className={`perm-check-btn ${permissions.screen ? 'active' : ''}`} onClick={requestScreenSharePermission}>

@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS users (
     global_rank VARCHAR(50) DEFAULT '#5,230',
     cgpa VARCHAR(20) DEFAULT '8.06/10',
     role VARCHAR(50) DEFAULT 'student', -- 'student', 'admin'
+    points INT DEFAULT 0,
+    avatar_id VARCHAR(50),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

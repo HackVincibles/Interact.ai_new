@@ -18,7 +18,7 @@ export class LeaderboardService {
     // Real database query for registered users
     try {
       const res = await dbPool.query(
-        `SELECT id, full_name as name, email, college_name as college, branch, COALESCE(points, 0) as points, cgpa
+        `SELECT id, full_name as name, email, college_name as college, branch, COALESCE(points, 0) as points, cgpa, avatar_id
          FROM users 
          ORDER BY COALESCE(points, 0) DESC, created_at ASC 
          LIMIT 100`
@@ -33,6 +33,7 @@ export class LeaderboardService {
         college: row.college || 'Unspecified Campus',
         branch: row.branch || 'General Engineering',
         cgpa: row.cgpa || 'N/A',
+        avatar: row.avatar_id || null,
       }));
 
       return {

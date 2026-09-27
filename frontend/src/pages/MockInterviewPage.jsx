@@ -15,16 +15,42 @@ export default function MockInterviewPage({ currentUser, onNavigate }) {
 
   const [activeMediaStream, setActiveMediaStream] = useState(null);
   const [reportData, setReportData] = useState(null);
+  const [currentSessionId, setCurrentSessionId] = useState(null);
 
   const handleLaunchLobby = (cfg) => {
     setInterviewConfig((prev) => ({ ...prev, ...cfg }));
     setStage('lobby');
   };
 
-  const handleStartInterviewFromLobby = ({ stream }) => {
+  const handleStartInterviewFromLobby = async ({ stream }) => {
     setActiveMediaStream(stream);
+    try {
+      const res = await fetch('http://localhost:5000/api/interview/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          interviewType: interviewConfig.type,
+          targetRole: interviewConfig.targetRole,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCurrentSessionId(data.sessionId);
+      }
+    } catch (e) {
+      console.warn('Failed to start interview on backend', e);
+    }
     setStage('studio');
   };
+
+  // Cleanup stream when MockInterviewPage unmounts or stream changes
+  React.useEffect(() => {
+    return () => {
+      if (activeMediaStream) {
+        activeMediaStream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [activeMediaStream]);
 
   const handleFinishInterview = async ({ elapsedSeconds, transcript }) => {
     // Generate Report
@@ -33,7 +59,7 @@ export default function MockInterviewPage({ currentUser, onNavigate }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          sessionId: 'SESSION_LIVE_123',
+          sessionId: currentSessionId || 'SESSION_LIVE_123',
           answersHistory: transcript,
         }),
       }).catch(() => null);
@@ -126,6 +152,8 @@ export default function MockInterviewPage({ currentUser, onNavigate }) {
       {stage === 'report' && (
         <InterviewReportView 
           report={reportData}
+          currentUser={currentUser}
+          interviewConfig={interviewConfig}
           onRestartInterview={() => setStage('setup')}
           onNavigate={onNavigate}
         />

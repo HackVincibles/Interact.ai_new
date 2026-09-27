@@ -55,7 +55,7 @@ Return JSON array of strings: ["Question 1...", "Question 2...", "Question 3..."
     };
 
     // Save session in DB
-    await InterviewModel.saveInterviewSession({
+    const savedRecord = await InterviewModel.saveInterviewSession({
       userId,
       domain: sessionState.domain,
       targetRole: sessionState.targetRole,
@@ -63,8 +63,10 @@ Return JSON array of strings: ["Question 1...", "Question 2...", "Question 3..."
       score: 0,
     });
 
+    const realSessionId = savedRecord.id.toString();
+
     return {
-      sessionId,
+      sessionId: realSessionId,
       status: 'QUESTIONING',
       currentQuestion: initialQuestions[0],
       questionNumber: 1,
@@ -133,48 +135,62 @@ Return JSON format:
    * Generates a 50-Parameter Final AI Evaluation Report upon completion.
    */
   static async generateFinalReport({ sessionId, answersHistory = [], evaluationsHistory = [] }) {
+    const transcriptText = answersHistory.map(h => `${h.sender === 'interviewer' ? 'Interviewer' : 'Candidate'}: ${h.text}`).join('\n');
+
     const reportPrompt = `
-Generate a comprehensive 50-Parameter AI Candidate Interview Report based on candidate performance.
-Return JSON format with schema:
+You are an expert AI Tech Interviewer. Evaluate this interview transcript and generate a comprehensive AI Candidate Interview Report based ONLY on this candidate's actual performance. Do not use generic feedback; refer to specific things the candidate said.
+If the candidate did not answer any questions or the transcript is empty/too short, give them a score of 0 and state that they did not participate.
+
+Interview Transcript:
+${transcriptText || '(No transcript provided)'}
+
+Return ONLY valid JSON format with schema exactly matching:
 {
-  "overallScore": 88,
-  "technicalKnowledge": 85,
-  "communication": 90,
-  "problemSolving": 84,
-  "strengths": ["Clear system design breakdown", "Strong grasp of async I/O"],
-  "weaknesses": ["Space complexity edge case explanation"],
-  "topicsToImprove": ["Redis Caching Policies", "Postgres Index Optimization"],
+  "overallScore": number (0-100),
+  "technicalKnowledge": number (0-100),
+  "communication": number (0-100),
+  "problemSolving": number (0-100),
+  "strengths": ["...", "..."],
+  "weaknesses": ["...", "..."],
+  "topicsToImprove": ["...", "..."],
   "questionFeedback": [
-    { "q": "Question 1", "score": 90, "note": "Excellent explanation of React component lifecycle." }
+    { "q": "summary of question asked", "score": number, "note": "specific feedback on their answer" }
   ],
-  "recommendedPractice": "Focus on 45-min System Design sessions & LeetCode Hard Trees."
+  "recommendedPractice": "actionable study plan"
 }
 `;
 
     let report = {
-      overallScore: 88,
-      technicalKnowledge: 86,
-      communication: 90,
-      problemSolving: 85,
-      strengths: ['Clean code architecture reasoning', 'Clear explanation of asynchronous state', 'Structured problem breakdown'],
-      weaknesses: ['Could detail memory overhead of recursive call stacks'],
-      topicsToImprove: ['Redis Cache Stampede Prevention', 'PostgreSQL B-Tree vs Hash Indexes'],
-      questionFeedback: [
-        { q: 'System Architecture & Data Structures', score: 88, note: 'Clear breakdown of API gateway and database queries.' },
-        { q: 'High-Concurrency Concurrency & Caching', score: 86, note: 'Solid understanding of cache invalidation strategies.' },
-      ],
-      recommendedPractice: 'Practice 45-min System Design & Advanced Data Structures sessions.',
+      overallScore: 0,
+      technicalKnowledge: 0,
+      communication: 0,
+      problemSolving: 0,
+      strengths: ['No data (Interview aborted or failed to parse)'],
+      weaknesses: ['No data'],
+      topicsToImprove: ['No data'],
+      questionFeedback: [],
+      recommendedPractice: 'Complete an interview to generate a report.',
     };
 
     try {
       const result = await geminiFlash.generateContent(reportPrompt);
       const text = result.response.text();
-      const match = text.match(/\{[\s\S]*\}/);
-      if (match) {
-        report = JSON.parse(match[0]);
+      // Safely extract JSON between first { and last }
+      const firstBrace = text.indexOf('{');
+      const lastBrace = text.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace !== -1) {
+        const jsonStr = text.substring(firstBrace, lastBrace + 1);
+        report = JSON.parse(jsonStr);
+      } else {
+        console.warn('Gemini report generation failed to produce JSON:', text);
       }
+
     } catch (e) {
       console.warn('Gemini report generation notice:', e.message);
+    }
+
+    if (sessionId && !sessionId.startsWith('SESSION_')) {
+      await InterviewModel.updateInterviewReport(sessionId, report);
     }
 
     return report;

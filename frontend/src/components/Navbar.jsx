@@ -33,6 +33,9 @@ export default function Navbar({
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [notificationOpen, setNotificationOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const navItems = [
     { id: 'home', label: 'Home', icon: Sparkles },
@@ -50,7 +53,7 @@ export default function Navbar({
 
   return (
     <header className="navbar-header">
-      <div className="container navbar-container">
+      <div className="navbar-container">
         
         {/* Brand Logo - Placed on far left */}
         <div className="navbar-logo" onClick={() => onTabChange && onTabChange('home')}>
@@ -84,23 +87,69 @@ export default function Navbar({
           
           {/* Theme Toggle Button (Sun / Moon) */}
           <button 
-            className="action-btn theme-toggle-btn"
+            className="navbar-utility-btn theme-toggle-btn"
             onClick={onToggleTheme}
             title={theme === 'dark' ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
+            aria-label={theme === 'dark' ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
           >
-            {theme === 'dark' ? <Sun size={18} className="yellow" /> : <Moon size={18} className="purple" />}
+            {theme === 'dark' ? <Sun size={20} className="yellow" /> : <Moon size={20} className="purple" />}
           </button>
 
           {isLoggedIn ? (
             <>
-              <button className="action-btn" title="Search platform">
-                <Search size={18} />
-              </button>
+              {searchOpen ? (
+                <div className="search-container active">
+                  <input 
+                    type="text" 
+                    className="search-input" 
+                    placeholder="Search courses, jobs..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    autoFocus
+                  />
+                  <button className="search-close-btn" onClick={() => setSearchOpen(false)}>
+                    <X size={16} />
+                  </button>
+                </div>
+              ) : (
+                <button className="navbar-utility-btn search-btn" title="Search platform" aria-label="Search platform" onClick={() => setSearchOpen(true)}>
+                  <Search size={20} />
+                </button>
+              )}
               
-              <button className="action-btn notification-btn" title="Notifications">
-                <Bell size={18} />
-                <span className="notification-dot"></span>
-              </button>
+              <div className="notification-wrapper">
+                <button 
+                  className="navbar-utility-btn notification-btn" 
+                  title="Notifications"
+                  aria-label="Notifications"
+                  onClick={() => setNotificationOpen(!notificationOpen)}
+                >
+                  <Bell size={20} />
+                  <span className="notification-dot"></span>
+                </button>
+                {notificationOpen && (
+                  <div className="notification-dropdown-card">
+                    <div className="dropdown-header">
+                      <p className="dropdown-title">Notifications</p>
+                    </div>
+                    <hr />
+                    <div className="notification-list">
+                      <div className="notification-item unread">
+                        <p><strong>New Course:</strong> Advanced System Design is now live!</p>
+                        <span>2h ago</span>
+                      </div>
+                      <div className="notification-item">
+                        <p>Your mock interview score report is ready.</p>
+                        <span>1d ago</span>
+                      </div>
+                    </div>
+                    <hr />
+                    <button className="dropdown-item text-center" style={{justifyContent: 'center'}}>
+                      View All
+                    </button>
+                  </div>
+                )}
+              </div>
 
               <div className="user-menu-wrapper">
                 <button 

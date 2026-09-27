@@ -1,5 +1,15 @@
 // Auth Business Service
 import { UserModel } from '../models/userModel.js';
+import { dbPool } from '../config/database.js';
+import { redis } from '../config/redis.js';
+import crypto from 'crypto';
+
+function verifyPassword(password, hashStr) {
+  if (!hashStr || !hashStr.includes(':')) return false;
+  const [salt, key] = hashStr.split(':');
+  const derivedKey = crypto.scryptSync(password, salt, 64).toString('hex');
+  return key === derivedKey;
+}
 
 export class AuthService {
   static async registerUser(data) {
@@ -20,7 +30,6 @@ export class AuthService {
     }
     let user = await UserModel.findByEmail(email);
     if (!user) {
-      // Auto register candidate with their actual login email
       user = await UserModel.createOrUpdate({
         fullName: email.split('@')[0],
         email: email,
@@ -44,23 +53,46 @@ export class AuthService {
   }
 
   static async adminLogin(usernameOrEmail, password, adminKey) {
-    // Validate credentials
-    const hardcodedAdminKey = process.env.ADMIN_SECRET_KEY || 'admin123';
-    const isValidKey = adminKey === hardcodedAdminKey || password === 'admin123' || password === 'admin@123';
-    
-    if (!isValidKey && usernameOrEmail !== 'admin' && usernameOrEmail !== 'admin@interact.ai') {
-      throw new Error('Invalid admin credentials or authorization key');
+    // Check Database
+    const res = await dbPool.query(
+      'SELECT * FROM admins WHERE username = $1 OR email = $1',
+      [usernameOrEmail]
+    );
+    const adminRec = res.rows[0];
+
+    if (!adminRec) {
+      throw new Error('Invalid admin credentials');
     }
 
+    const isValid = verifyPassword(password, adminRec.password_hash);
+    if (!isValid) {
+      throw new Error('Invalid admin credentials');
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const adminUser = {
+      id: adminRec.id,
+      username: adminRec.username,
+      email: adminRec.email,
+      role: adminRec.role,
+    };
+    
+    // Store session in Redis, expires in 24h
+    await redis.set(`admin_session:${token}`, JSON.stringify(adminUser), { ex: 86400 });
+
     return {
-      admin: {
-        username: usernameOrEmail || 'admin',
-        email: usernameOrEmail.includes('@') ? usernameOrEmail : 'admin@interact.ai',
-        role: 'superadmin',
-      },
-      token: `admin-jwt-token-${Date.now()}`,
+      admin: adminUser,
+      token,
       message: 'Admin authorization successful',
     };
+  }
+
+  static async verifyAdminToken(token) {
+    const data = await redis.get(`admin_session:${token}`);
+    if (data) {
+      return typeof data === 'string' ? JSON.parse(data) : data;
+    }
+    return null;
   }
 
   static async getUserProfile(email) {

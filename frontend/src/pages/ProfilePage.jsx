@@ -33,7 +33,18 @@ import './ProfilePage.css';
 export default function ProfilePage({ currentUser, onNavigate }) {
   const [viewMode, setViewMode] = useState('private'); // 'private' or 'public'
   const [activeSidebarItem, setActiveSidebarItem] = useState('profile');
-  const [activeModal, setActiveModal] = useState(null); // 'cert', 'project', 'exp', 'goal', 'academic', 'skill', 'resume'
+  const [activeModal, setActiveModal] = useState(null); // 'cert', 'project', 'exp', 'goal', 'academic', 'skill', 'resume', 'avatar'
+
+  const AVATARS = [
+    { id: 'avatar_1', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex&backgroundColor=b6e3f4' },
+    { id: 'avatar_2', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sam&backgroundColor=c0aede' },
+    { id: 'avatar_3', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Priya&backgroundColor=ffdfbf' },
+    { id: 'avatar_4', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Rahul&backgroundColor=d1d4f9' },
+    { id: 'avatar_5', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mia&backgroundColor=c0aede' },
+    { id: 'avatar_6', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Aman&backgroundColor=b6e3f4' },
+    { id: 'avatar_7', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Neha&backgroundColor=ffdfbf' },
+    { id: 'avatar_8', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Kabir&backgroundColor=d1d4f9' },
+  ];
 
   // Load user profile from localStorage or initialize with currentUser registration data
   const [profile, setProfile] = useState(() => {
@@ -197,6 +208,26 @@ export default function ProfilePage({ currentUser, onNavigate }) {
     setActiveModal(null);
   };
 
+  const handleSaveAvatar = async (avatarItem) => {
+    setProfile(prev => ({ ...prev, avatarUrl: avatarItem.url, avatarId: avatarItem.id }));
+    setActiveModal(null);
+    try {
+      const token = localStorage.getItem('interact_token');
+      if (token) {
+        await fetch('http://localhost:5000/api/users/avatar', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ avatarId: avatarItem.id, avatarUrl: avatarItem.url, email: currentUser?.email })
+        });
+      }
+    } catch (e) {
+      console.warn('Failed to sync avatar to backend', e);
+    }
+  };
+
   return (
     <div className="profile-dashboard-layout animate-fade-in">
       <div className="container profile-workspace-container">
@@ -283,7 +314,7 @@ export default function ProfilePage({ currentUser, onNavigate }) {
               <div className="avatar-large-container">
                 <img src={profile.avatarUrl} alt={profile.fullName || 'User'} className="avatar-large-img" />
                 {viewMode === 'private' && (
-                  <button className="avatar-camera-btn" title="Change profile picture" onClick={() => alert('Select a new profile image file...')}>
+                  <button className="avatar-camera-btn" title="Change profile picture" onClick={() => setActiveModal('avatar')}>
                     <Camera size={14} />
                   </button>
                 )}
@@ -845,6 +876,40 @@ export default function ProfilePage({ currentUser, onNavigate }) {
             <div className="modal-actions-row">
               <button className="btn-outline-secondary" onClick={() => setActiveModal(null)}>Cancel</button>
               <button className="btn-primary-purple" onClick={handleAddExperience}>Add Experience</button>
+            </div>
+          </div>
+          </div>
+        </div>
+      )}
+
+      {/* Avatar Modal */}
+      {activeModal === 'avatar' && (
+        <div className="modal-backdrop-overlay">
+          <div className="modal-box card-base" style={{ maxWidth: '500px' }}>
+            <h3>Choose your avatar</h3>
+            <p>Select a verified profile avatar that represents your professional persona.</p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', justifyContent: 'center', margin: '20px 0' }}>
+              {AVATARS.map((av) => (
+                <button
+                  key={av.id}
+                  onClick={() => handleSaveAvatar(av)}
+                  style={{
+                    background: 'none',
+                    border: profile.avatarId === av.id ? '2px solid var(--primary-purple)' : '2px solid transparent',
+                    borderRadius: '50%',
+                    padding: '4px',
+                    cursor: 'pointer',
+                    transition: 'transform 0.2s',
+                  }}
+                  onMouseOver={(e) => (e.currentTarget.style.transform = 'scale(1.1)')}
+                  onMouseOut={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                >
+                  <img src={av.url} alt="avatar" style={{ width: '60px', height: '60px', borderRadius: '50%' }} />
+                </button>
+              ))}
+            </div>
+            <div className="modal-actions-row">
+              <button className="btn-outline-secondary" onClick={() => setActiveModal(null)}>Cancel</button>
             </div>
           </div>
         </div>

@@ -26,6 +26,8 @@ import {
   Check
 } from 'lucide-react';
 import { generateCareerRoadmap } from '../services/gemini';
+import InterviewLobby from '../components/InterviewLobby';
+import LiveInterviewStudio from '../components/LiveInterviewStudio';
 import './CareerPathsPage.css';
 
 export default function CareerPathsPage({ onNavigate }) {
@@ -46,6 +48,25 @@ export default function CareerPathsPage({ onNavigate }) {
   });
   const [counselorLoading, setCounselorLoading] = useState(false);
   const [counselorResult, setCounselorResult] = useState(null);
+
+  // Roadmap Interview Preparation State
+  const [interviewStage, setInterviewStage] = useState(null); // null, 'lobby', 'studio'
+  const [activeMediaStream, setActiveMediaStream] = useState(null);
+
+  const handleStartLobby = () => {
+    setInterviewStage('lobby');
+  };
+
+  const handleStartStudio = ({ stream }) => {
+    setActiveMediaStream(stream);
+    setInterviewStage('studio');
+  };
+
+  const handleFinishInterview = () => {
+    setInterviewStage(null);
+    setActiveMediaStream(null);
+    alert('Roadmap Preparation Session Completed!');
+  };
 
   // Domain Roadmaps Catalog
   const domainRoadmaps = [
@@ -465,8 +486,20 @@ export default function CareerPathsPage({ onNavigate }) {
       {/* Main Workspace Section */}
       <section className="container">
         
-        {/* VIEW MODE 1: Active Interactive Roadmap View */}
-        {activeDomain ? (
+        {/* INTERVIEW STAGES (When Preparation is Started) */}
+        {interviewStage === 'lobby' ? (
+          <InterviewLobby 
+            interviewConfig={{ type: activeDomain?.title || 'Technical SDE-1' }}
+            onStartInterview={handleStartStudio}
+          />
+        ) : interviewStage === 'studio' ? (
+          <LiveInterviewStudio 
+            initialStream={activeMediaStream}
+            interviewConfig={{ type: activeDomain?.title || 'Technical SDE-1' }}
+            onFinishInterview={handleFinishInterview}
+            isSequential={true}
+          />
+        ) : activeDomain ? (
           <div className="roadmap-workspace-section animate-fade-in">
             {/* Active Roadmap Header */}
             <div className="roadmap-header-card card-base">
@@ -481,6 +514,14 @@ export default function CareerPathsPage({ onNavigate }) {
                   <h2 className="active-domain-title">{activeDomain.title}</h2>
                   <span className="demand-badge">{activeDomain.demandScore}</span>
                 </div>
+                <button 
+                  className="btn-primary-purple" 
+                  style={{ marginTop: '16px' }}
+                  onClick={handleStartLobby}
+                >
+                  <span>Start Full Preparation Sequence</span>
+                  <ArrowRight size={16} />
+                </button>
               </div>
 
               {/* Progress Tracker */}

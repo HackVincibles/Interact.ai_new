@@ -30,4 +30,29 @@ export class InterviewModel {
       return [];
     }
   }
+
+  static async getInterviewById(id) {
+    try {
+      const res = await dbPool.query('SELECT * FROM interviews WHERE id = $1', [id]);
+      return res.rows[0];
+    } catch (err) {
+      console.warn('Postgres query fallback (getInterviewById):', err.message);
+      return null;
+    }
+  }
+
+  static async updateInterviewReport(id, reportObj) {
+    try {
+      const score = reportObj.overallScore || 0;
+      const feedbackJson = JSON.stringify(reportObj);
+      const res = await dbPool.query(
+        'UPDATE interviews SET score = $1, feedback = $2 WHERE id = $3 RETURNING *',
+        [score, feedbackJson, id]
+      );
+      return res.rows[0];
+    } catch (err) {
+      console.warn('Postgres query fallback (updateInterviewReport):', err.message);
+      return null;
+    }
+  }
 }

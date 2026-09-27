@@ -1,6 +1,7 @@
 // Gemini & LangGraph AI Interview Controller
 import { InterviewService } from '../services/interviewService.js';
 import { LangGraphInterviewService } from '../services/langgraphInterviewService.js';
+import { InterviewModel } from '../models/interviewModel.js';
 
 export const generateQuestions = async (req, res, next) => {
   try {
@@ -47,6 +48,31 @@ export const getReport = async (req, res, next) => {
     res.json({
       success: true,
       report: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getReportById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const interview = await InterviewModel.getInterviewById(id);
+    if (!interview) {
+      return res.status(404).json({ success: false, message: 'Interview not found' });
+    }
+    let report = null;
+    if (interview.feedback) {
+      try {
+        report = JSON.parse(interview.feedback);
+      } catch (e) {
+        console.warn('Failed to parse feedback json', e);
+      }
+    }
+    res.json({
+      success: true,
+      report: report,
+      interview: interview
     });
   } catch (error) {
     next(error);

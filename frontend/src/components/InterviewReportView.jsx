@@ -1,22 +1,26 @@
 import React from 'react';
-import { Award, CheckCircle2, AlertCircle, ArrowLeft, RefreshCw, Sparkles, BookOpen, Target, ShieldCheck } from 'lucide-react';
+import { Award, CheckCircle2, AlertCircle, ArrowLeft, RefreshCw, Sparkles, BookOpen, Target, ShieldCheck, Download } from 'lucide-react';
+import { PDFDownloadLink } from '@react-pdf/renderer';
+import { ReportPDFDocument } from './ReportPDF';
 import './InterviewReportView.css';
 
-export default function InterviewReportView({ report, onRestartInterview, onNavigate }) {
-  const r = report || {
-    overallScore: 88,
-    technicalKnowledge: 86,
-    communication: 90,
-    problemSolving: 85,
-    strengths: ['Clean architectural reasoning for REST APIs', 'Good explanation of asynchronous I/O loops', 'Structured approach to problem solving'],
-    weaknesses: ['Could detail memory footprint of recursive stack frames'],
-    topicsToImprove: ['Redis Cache Stampede Mitigation', 'PostgreSQL Hash vs B-Tree Indexes'],
-    questionFeedback: [
-      { q: 'System Architecture & Data Structures', score: 88, note: 'Clear breakdown of API gateway and database queries.' },
-      { q: 'High-Concurrency Caching & Redis', score: 86, note: 'Solid understanding of cache invalidation strategies.' },
-    ],
-    recommendedPractice: 'Practice 45-min System Design & Advanced Data Structures sessions.',
-  };
+export default function InterviewReportView({ report, currentUser, interviewConfig, onRestartInterview, onNavigate }) {
+  if (!report) {
+    return (
+      <div className="report-view-root" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+        <div className="container" style={{ textAlign: 'center', color: '#94a3b8' }}>
+          <h2>Generating your interview report...</h2>
+          <p>Please wait while the AI evaluates your performance.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const r = report;
+  const cName = currentUser?.name || currentUser?.full_name || 'Candidate';
+  const iRole = interviewConfig?.targetRole || 'Software Engineer';
+  const iDomain = interviewConfig?.type || 'Technical';
+  const iDate = new Date().toLocaleDateString();
 
   return (
     <div className="report-view-root animate-fade-in">
@@ -37,6 +41,28 @@ export default function InterviewReportView({ report, onRestartInterview, onNavi
             <div>
               <h1 className="report-title">Candidate Performance Report</h1>
               <p className="report-sub">Evaluated by Interact Gemini AI Interview Engine</p>
+              <div style={{ marginTop: '16px' }}>
+                <PDFDownloadLink
+                  document={
+                    <ReportPDFDocument 
+                      report={r} 
+                      candidateName={cName}
+                      interview={{ target_role: iRole, domain: iDomain }}
+                      date={iDate}
+                    />
+                  }
+                  fileName={`InteractAI_Interview_Report.pdf`}
+                  className="btn-primary-purple"
+                  style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', borderRadius: '6px', fontSize: '14px', color: 'white' }}
+                >
+                  {({ loading }) => (
+                    <>
+                      <Download size={16} />
+                      {loading ? 'Generating PDF...' : 'Download Report'}
+                    </>
+                  )}
+                </PDFDownloadLink>
+              </div>
             </div>
 
             <div className="overall-score-dial">
@@ -91,7 +117,7 @@ export default function InterviewReportView({ report, onRestartInterview, onNavi
                 <CheckCircle2 size={18} /> Candidate Strengths
               </h3>
               <ul className="r-bullets-list">
-                {r.strengths.map((s, idx) => (
+                {r.strengths?.map((s, idx) => (
                   <li key={idx}>{s}</li>
                 ))}
               </ul>
@@ -102,7 +128,7 @@ export default function InterviewReportView({ report, onRestartInterview, onNavi
                 <AlertCircle size={18} /> Areas For Improvement
               </h3>
               <ul className="r-bullets-list">
-                {r.weaknesses.map((w, idx) => (
+                {r.weaknesses?.map((w, idx) => (
                   <li key={idx}>{w}</li>
                 ))}
               </ul>
@@ -114,7 +140,7 @@ export default function InterviewReportView({ report, onRestartInterview, onNavi
               </h3>
               <p className="rec-text">{r.recommendedPractice}</p>
               <div className="topics-pills-row">
-                {r.topicsToImprove.map((t, idx) => (
+                {r.topicsToImprove?.map((t, idx) => (
                   <span key={idx} className="topic-pill">{t}</span>
                 ))}
               </div>
@@ -130,7 +156,7 @@ export default function InterviewReportView({ report, onRestartInterview, onNavi
               </h3>
 
               <div className="q-feedback-list">
-                {r.questionFeedback.map((item, idx) => (
+                {r.questionFeedback?.map((item, idx) => (
                   <div key={idx} className="q-fb-item">
                     <div className="q-fb-header">
                       <strong>Q{idx + 1}: {item.q}</strong>
