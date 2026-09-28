@@ -26,9 +26,19 @@ import {
   Globe,
   UploadCloud,
   X,
-  Trash2
+  Trash2,
+  Calendar
 } from 'lucide-react';
 import './ProfilePage.css';
+import MyRoadmap from '../components/profile/MyRoadmap';
+import MyCourses from '../components/profile/MyCourses';
+import MyInternships from '../components/profile/MyInternships';
+import MyJobs from '../components/profile/MyJobs';
+import MyMockInterviews from '../components/profile/MyMockInterviews';
+import MyResources from '../components/profile/MyResources';
+import MyCertificates from '../components/profile/MyCertificates';
+import MySchedules from '../components/profile/MySchedules';
+
 
 export default function ProfilePage({ currentUser, onNavigate }) {
   const [viewMode, setViewMode] = useState('private'); // 'private' or 'public'
@@ -102,6 +112,7 @@ export default function ProfilePage({ currentUser, onNavigate }) {
     { id: 'courses', label: 'My Courses', icon: BookOpen },
     { id: 'internships', label: 'My Internships', icon: Briefcase },
     { id: 'jobs', label: 'My Jobs', icon: Briefcase },
+    { id: 'schedules', label: 'My Schedules', icon: Calendar },
     { id: 'mock-interviews', label: 'My Mock Interviews', icon: Award },
     { id: 'resources', label: 'My Resources', icon: FileText },
     { id: 'certificates', label: 'My Certificates', icon: ShieldCheck },
@@ -109,9 +120,6 @@ export default function ProfilePage({ currentUser, onNavigate }) {
 
   const handleSidebarClick = (itemId) => {
     setActiveSidebarItem(itemId);
-    if (itemId !== 'profile' && onNavigate) {
-      onNavigate(itemId);
-    }
   };
 
   // Add Item Handlers
@@ -267,8 +275,10 @@ export default function ProfilePage({ currentUser, onNavigate }) {
         {/* Right Main Profile Workspace */}
         <main className="profile-main-content">
           
-          {/* View Toggle Bar (Private vs Sharable Public Profile) */}
-          <div className="profile-view-toggle-bar card-base">
+          {activeSidebarItem === 'profile' && (
+            <>
+              {/* View Toggle Bar (Private vs Sharable Public Profile) */}
+              <div className="profile-view-toggle-bar card-base">
             <div className="toggle-info">
               <Sparkles size={18} className="sparkle-gold" />
               <span>
@@ -681,7 +691,19 @@ export default function ProfilePage({ currentUser, onNavigate }) {
               </div>
 
             </div>
-          </div>
+            </div>
+            </>
+          )}
+
+          {activeSidebarItem === 'roadmap' && <MyRoadmap currentUser={currentUser} onNavigate={onNavigate} />}
+          {activeSidebarItem === 'courses' && <MyCourses currentUser={currentUser} onNavigate={onNavigate} />}
+          { activeSidebarItem === 'internships' && <MyInternships currentUser={currentUser} onNavigate={onNavigate} /> }
+          { activeSidebarItem === 'jobs' && <MyJobs currentUser={currentUser} onNavigate={onNavigate} /> }
+          { activeSidebarItem === 'schedules' && <MySchedules currentUser={currentUser} /> }
+          { activeSidebarItem === 'mock-interviews' && <MyMockInterviews currentUser={currentUser} onNavigate={onNavigate} /> }
+          { activeSidebarItem === 'resources' && <MyResources currentUser={currentUser} onNavigate={onNavigate} /> }
+          {activeSidebarItem === 'certificates' && <MyCertificates currentUser={currentUser} />}
+
         </main>
       </div>
 

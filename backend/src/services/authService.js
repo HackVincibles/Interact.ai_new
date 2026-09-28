@@ -11,7 +11,51 @@ function verifyPassword(password, hashStr) {
   return key === derivedKey;
 }
 
+export function hashPassword(password) {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const derivedKey = crypto.scryptSync(password, salt, 64).toString('hex');
+  return `${salt}:${derivedKey}`;
+}
+
 export class AuthService {
+  static async forgotPassword(email) {
+    if (!email) throw new Error('Email is required');
+    const user = await UserModel.findByEmail(email);
+    if (!user) throw new Error('User not found');
+    
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    await redis.set(`reset_otp:${email}`, otp, { ex: 600 }); // 10 minutes
+    
+    return otp;
+  }
+
+  static async verifyOtp(email, otp) {
+    if (!email || !otp) throw new Error('Email and OTP are required');
+    const savedOtp = await redis.get(`reset_otp:${email}`);
+    if (!savedOtp || savedOtp !== otp) {
+      throw new Error('Invalid or expired OTP');
+    }
+    
+    const token = crypto.randomBytes(32).toString('hex');
+    await redis.set(`reset_token:${email}`, token, { ex: 900 }); // 15 mins
+    return token;
+  }
+
+  static async resetPassword(email, token, newPassword) {
+    if (!email || !token || !newPassword) throw new Error('Missing parameters');
+    const savedToken = await redis.get(`reset_token:${email}`);
+    if (!savedToken || savedToken !== token) {
+      throw new Error('Invalid or expired reset session');
+    }
+    
+    const hashStr = hashPassword(newPassword);
+    await dbPool.query('UPDATE users SET password_hash = $1 WHERE email = $2', [hashStr, email]);
+    
+    await redis.del(`reset_otp:${email}`);
+    await redis.del(`reset_token:${email}`);
+    
+    return true;
+  }
   static async registerUser(data) {
     if (!data.email) {
       throw new Error('Email address is required for user registration');

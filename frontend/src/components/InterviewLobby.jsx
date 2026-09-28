@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Mic, Monitor, ShieldCheck, ArrowRight, Video, AlertCircle, CheckCircle2, Wifi, Compass } from 'lucide-react';
+import { Camera, Mic, Monitor, ShieldCheck, ArrowRight, Video, AlertCircle, CheckCircle2, Wifi, Compass, Calendar } from 'lucide-react';
+import ScheduleModal from './scheduling/ScheduleModal';
 import './InterviewLobby.css';
 
 export default function InterviewLobby({ onStartInterview, interviewConfig }) {
@@ -16,6 +17,7 @@ export default function InterviewLobby({ onStartInterview, interviewConfig }) {
   
   const [isTestingStream, setIsTestingStream] = useState(false);
   const [consentChecked, setConsentChecked] = useState(false);
+  const [isScheduleOpen, setIsScheduleOpen] = useState(false);
   const videoPreviewRef = useRef(null);
   const streamRef = useRef(null);
 
@@ -92,6 +94,53 @@ export default function InterviewLobby({ onStartInterview, interviewConfig }) {
   }, []);
 
   const canStart = permissions.camera && permissions.mic && consentChecked && systemChecks.network === 'ok' && systemChecks.browser === 'ok';
+
+  const isAptitude = interviewConfig?.roundType === 'Aptitude';
+
+  if (isAptitude) {
+    return (
+      <div className="interview-lobby-root animate-fade-in">
+        <div className="container lobby-container" style={{ maxWidth: '600px', margin: '100px auto' }}>
+          <div className="lobby-header card-base" style={{ textAlign: 'center', padding: '40px' }}>
+            <span className="section-label">APTITUDE ASSESSMENT</span>
+            <h1 className="lobby-title" style={{ margin: '16px 0' }}>
+              Ready for your <span className="purple-gradient-text">Aptitude</span> Test?
+            </h1>
+            <p className="lobby-sub" style={{ fontSize: '1.1rem', marginBottom: '32px' }}>
+              This assessment consists of quantitative and logical reasoning questions.
+              No camera or microphone is required for this round.
+            </p>
+            <div>
+              <button 
+                className="btn-primary-purple" 
+                style={{ padding: '16px 32px', fontSize: '1.1rem', borderRadius: '30px', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+                onClick={() => onStartInterview({ stream: null })}
+              >
+                Start Aptitude Test <ArrowRight size={20} style={{ marginLeft: '8px' }} />
+              </button>
+              
+              <button 
+                className="btn-secondary" 
+                style={{ padding: '16px 32px', fontSize: '1.1rem', borderRadius: '30px', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', marginTop: '12px' }}
+                onClick={() => setIsScheduleOpen(true)}
+              >
+                <Calendar size={20} style={{ marginRight: '8px' }} /> Schedule for Later
+              </button>
+            </div>
+            
+            <ScheduleModal 
+              isOpen={isScheduleOpen}
+              onClose={() => setIsScheduleOpen(false)}
+              config={{
+                type: 'Aptitude Test',
+                duration: 45
+              }}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="interview-lobby-root animate-fade-in">
@@ -236,19 +285,39 @@ export default function InterviewLobby({ onStartInterview, interviewConfig }) {
               </label>
             </div>
 
-            <button 
-              className="btn-primary-purple launch-studio-btn"
-              disabled={!canStart}
-              onClick={() => onStartInterview({ stream: streamRef.current, permissions })}
-            >
-              <span>Launch AI Interview Studio</span>
-              <ArrowRight size={18} />
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <button 
+                className="btn-primary-purple launch-studio-btn"
+                disabled={!canStart}
+                onClick={() => onStartInterview({ stream: streamRef.current, permissions })}
+              >
+                <span>Launch AI Interview Studio</span>
+                <ArrowRight size={18} />
+              </button>
+              
+              <button 
+                className="btn-secondary schedule-later-btn"
+                onClick={() => setIsScheduleOpen(true)}
+                style={{ padding: '14px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)', color: 'var(--text-main)', cursor: 'pointer', fontWeight: '500', transition: 'all 0.2s' }}
+              >
+                <Calendar size={18} />
+                <span>Schedule for Later</span>
+              </button>
+            </div>
           </div>
 
         </div>
 
       </div>
+
+      <ScheduleModal 
+        isOpen={isScheduleOpen}
+        onClose={() => setIsScheduleOpen(false)}
+        config={{
+          type: interviewConfig?.type || 'Technical Interview',
+          duration: 30
+        }}
+      />
     </div>
   );
 }

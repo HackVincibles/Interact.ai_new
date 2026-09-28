@@ -26,7 +26,7 @@ export default function InternshipsPage({ currentUser, onNavigate }) {
   const fetchInternships = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`http://localhost:5000/api/jobs?category=internship&query=${encodeURIComponent(searchQuery)}`);
+      const res = await fetch(`http://localhost:5000/api/jobs?category=internship&query=${encodeURIComponent(searchQuery)}`, { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         setInternshipsCatalog(data.jobs || []);

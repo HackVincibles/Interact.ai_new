@@ -1,0 +1,112 @@
+.schedule-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.schedule-modal-content {
+  width: 100%;
+  max-width: 500px;
+  background: var(--bg-card);
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.schedule-modal-close {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+.schedule-modal-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-main);
+}
+
+.schedule-modal-header {
+  padding: 2rem 2rem 1.5rem;
+  text-align: center;
+}
+.schedule-modal-header h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 0.5rem;
+}
+.schedule-modal-header p {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.schedule-modal-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 2rem 1.5rem;
+}
+.schedule-modal-stepper .step {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.schedule-modal-stepper .step.active {
+  color: var(--primary-color);
+}
+.schedule-modal-stepper .step.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.schedule-modal-stepper .step-divider {
+  height: 1px;
+  width: 30px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 0 1rem;
+}
+
+.schedule-modal-body {
+  padding: 0 2rem;
+  min-height: 320px;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.schedule-error {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.schedule-modal-footer {
+  padding: 1.5rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  margin-top: 1rem;
+}

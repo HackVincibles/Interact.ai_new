@@ -1,10 +1,23 @@
-// SendGrid Email & OTP Service Configuration
-import sgMail from '@sendgrid/mail';
+// Brevo Email Service Configuration
+import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const apiKey = process.env.SENDGRID_API_KEY || '';
-sgMail.setApiKey(apiKey);
+const smtpUser = process.env.BREVO_SMTP_USER || '';
+const smtpKey = process.env.BREVO_SMTP_KEY || '';
 
-export const sendgridService = sgMail;
+const transporter = nodemailer.createTransport({
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  auth: {
+    user: smtpUser,
+    pass: smtpKey,
+  },
+});
+
+export const sendgridService = {
+  send: async (msg) => {
+    return transporter.sendMail(msg);
+  }
+};
 export const senderEmail = process.env.SENDER_EMAIL || 'support@interact.ai';

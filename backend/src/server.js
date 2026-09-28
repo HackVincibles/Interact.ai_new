@@ -11,7 +11,10 @@ import emailRoutes from './routes/emailRoutes.js';
 import interviewRoutes from './routes/interviewRoutes.js';
 import jobRoutes from './routes/jobRoutes.js';
 import resumeRoutes from './routes/resumeRoutes.js';
+import certificateRoutes from './routes/certificateRoutes.js';
+import scheduleRoutes from './routes/scheduleRoutes.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { startReminderWorker } from './workers/reminderWorker.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -38,6 +41,8 @@ app.use('/api/jobs', jobRoutes);
 app.use('/api/resume', resumeRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/certificates', certificateRoutes);
+app.use('/api/schedules', scheduleRoutes);
 
 // Healthcheck Route
 app.get('/api/health', (req, res) => {
@@ -56,6 +61,7 @@ app.use(errorHandler);
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
     console.log(`🚀 Interact.ai Backend API running on http://localhost:${PORT}`);
+    startReminderWorker();
   });
 }
 

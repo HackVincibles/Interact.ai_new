@@ -72,5 +72,22 @@ CREATE TABLE IF NOT EXISTS jobs (
     job_type VARCHAR(50),
     stipend_salary VARCHAR(100),
     apply_url TEXT,
+    description TEXT,
+    is_featured BOOLEAN DEFAULT false,
+    is_published BOOLEAN DEFAULT true,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS certificates (
+    id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES users(id) ON DELETE CASCADE,
+    certificate_type VARCHAR(50) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    achievement VARCHAR(255),
+    score DECIMAL(5, 2),
+    source_session_id VARCHAR(100),
+    verification_id VARCHAR(100) UNIQUE NOT NULL,
+    issued_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, source_session_id, certificate_type)
 );

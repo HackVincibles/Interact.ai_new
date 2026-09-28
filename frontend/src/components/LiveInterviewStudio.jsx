@@ -34,10 +34,11 @@ export default function LiveInterviewStudio({ initialStream, interviewConfig, on
   const vapiRef = useRef(null);
   const elapsedRef = useRef(0);
   
-  const isCoding = isSequential ? currentRound === 'Coding' : false;
-  const isHR = isSequential ? currentRound === 'HR' : (interviewConfig?.type?.includes('HR') || interviewConfig?.type?.includes('Behavioral'));
-  const isAptitude = isSequential ? currentRound === 'Aptitude' : false;
-  const isTechnical = isSequential ? currentRound === 'Technical' : (!isCoding && !isHR && !isAptitude);
+  const isCoding = isSequential ? currentRound === 'Coding' : (interviewConfig?.roundType === 'Coding' || interviewConfig?.type?.includes('Coding'));
+  const isHR = isSequential ? currentRound === 'HR' : (interviewConfig?.roundType === 'HR' || interviewConfig?.roundType === 'Behavioral' || interviewConfig?.type?.includes('HR') || interviewConfig?.type?.includes('Behavioral'));
+  const isAptitude = isSequential ? currentRound === 'Aptitude' : (interviewConfig?.roundType === 'Aptitude' || interviewConfig?.type?.includes('Aptitude'));
+  const isGD = isSequential ? currentRound === 'GD' : (interviewConfig?.roundType === 'GD' || interviewConfig?.type?.includes('GD'));
+  const isTechnical = isSequential ? currentRound === 'Technical' : (!isCoding && !isHR && !isAptitude && !isGD);
 
   useEffect(() => {
     elapsedRef.current = elapsedSeconds;
@@ -104,6 +105,8 @@ export default function LiveInterviewStudio({ initialStream, interviewConfig, on
 
   // 3. Vapi Initialization
   useEffect(() => {
+    if (isAptitude) return;
+
     const VapiClass = Vapi.default || Vapi;
     const vapi = new VapiClass(import.meta.env.VITE_VAPI_PUBLIC_KEY || 'mock-vapi-key');
     vapiRef.current = vapi;
@@ -135,10 +138,12 @@ export default function LiveInterviewStudio({ initialStream, interviewConfig, on
     });
 
     return () => {
-      vapi.removeAllListeners();
-      vapi.stop();
+      if (vapi) {
+        vapi.removeAllListeners();
+        vapi.stop();
+      }
     };
-  }, []);
+  }, [isAptitude]);
 
   const formatTime = (secs) => {
     const m = Math.floor(secs / 60).toString().padStart(2, '0');
@@ -264,7 +269,7 @@ export default function LiveInterviewStudio({ initialStream, interviewConfig, on
       <div className="hr-header">
         <div className="header-left">
           <button className="nav-btn" onClick={() => onFinishInterview({ elapsedSeconds, transcript })}>Exit</button>
-          <span className="round-indicator">{layoutType === 'Aptitude' ? 'Aptitude Round' : (layoutType === 'HR' ? 'HR Screening' : 'Technical Round')}</span>
+          <span className="round-indicator">{layoutType === 'Aptitude' ? 'Aptitude Round' : (layoutType === 'HR' ? 'HR Screening' : (layoutType === 'GD' ? 'Group Discussion' : 'Technical Round'))}</span>
           <span className="desc-text">{interviewConfig?.type}</span>
         </div>
         <div className="header-right">
@@ -356,7 +361,7 @@ export default function LiveInterviewStudio({ initialStream, interviewConfig, on
             <button className="control-btn" onClick={handleNextQuestion}>Next Question</button>
           </div>
 
-          {layoutType === 'HR' && (
+          {(layoutType === 'HR' || layoutType === 'GD') && (
             <div className="current-question-panel">
               <h3 style={{fontSize: '14px', color: '#94a3b8', marginBottom: '8px', marginTop: 0}}>Current AI Prompt</h3>
               <p className="question-text" style={{fontSize: '16px', margin: 0}}>{currentQuestionText}</p>
@@ -428,16 +433,6 @@ export default function LiveInterviewStudio({ initialStream, interviewConfig, on
         </div>
 
         <div className="aptitude-column-right">
-          <div className="proctor-panel card-base">
-            <div className="proctor-header">
-              <ShieldCheck size={16} style={{ color: '#10b981' }}/>
-              <span>Proctoring Active</span>
-            </div>
-            <div className="proctor-video-wrapper">
-              <video ref={videoRef} autoPlay playsInline muted className="proctor-video" />
-            </div>
-          </div>
-
           <div className="question-palette card-base">
             <h3>Question Palette</h3>
             <div className="palette-grid">
@@ -458,6 +453,7 @@ export default function LiveInterviewStudio({ initialStream, interviewConfig, on
       {isCoding && renderCodingLayout()}
       {isAptitude && renderAptitudeLayout()}
       {isHR && renderHRTechnicalLayout('HR')}
+      {isGD && renderHRTechnicalLayout('GD')}
       {isTechnical && renderHRTechnicalLayout('Technical')}
     </div>
   );

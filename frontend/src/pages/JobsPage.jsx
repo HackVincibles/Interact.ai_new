@@ -30,7 +30,7 @@ export default function JobsPage({ currentUser, onNavigate }) {
   const fetchJobsData = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`http://localhost:5000/api/jobs?category=${selectedCategory}&query=${encodeURIComponent(searchQuery)}`);
+      const res = await fetch(`http://localhost:5000/api/jobs?category=${selectedCategory}&query=${encodeURIComponent(searchQuery)}`, { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         setJobsCatalog(data.jobs || []);

@@ -1,7 +1,11 @@
 // Firecrawl Website Crawling Service
 import dotenv from 'dotenv';
-dotenv.config();
+import path from 'path';
+import { fileURLToPath } from 'url';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') }); // Root .env
 const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY || '';
 
 export class FirecrawlService {
@@ -23,8 +27,8 @@ export class FirecrawlService {
           formats: ['markdown', 'html'],
           onlyMainContent: true,
         }),
-      }).catch(() => null);
-
+      });
+      console.log('Firecrawl HTTP status:', response.status);
       if (response && response.ok) {
         const data = await response.json();
         return data.data?.markdown || data.data?.html || null;

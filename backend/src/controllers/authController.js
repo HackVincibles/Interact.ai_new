@@ -1,5 +1,6 @@
 // Auth & Student Profile Controller
 import { AuthService } from '../services/authService.js';
+import { EmailService } from '../services/emailService.js';
 
 export const registerUser = async (req, res, next) => {
   try {
@@ -55,5 +56,36 @@ export const getProfile = async (req, res, next) => {
     });
   } catch (error) {
     next(error);
+  }
+};
+
+export const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const otp = await AuthService.forgotPassword(email);
+    await EmailService.sendOtpEmail(email, otp);
+    res.json({ success: true, message: 'OTP sent successfully' });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+};
+
+export const verifyOtp = async (req, res, next) => {
+  try {
+    const { email, otp } = req.body;
+    const token = await AuthService.verifyOtp(email, otp);
+    res.json({ success: true, token, message: 'OTP verified' });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+};
+
+export const resetPassword = async (req, res, next) => {
+  try {
+    const { email, token, newPassword } = req.body;
+    await AuthService.resetPassword(email, token, newPassword);
+    res.json({ success: true, message: 'Password reset successful' });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
   }
 };

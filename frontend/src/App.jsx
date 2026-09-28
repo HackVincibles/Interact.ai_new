@@ -12,15 +12,21 @@ import InternshipsPage from './pages/InternshipsPage';
 import JobsPage from './pages/JobsPage';
 import ResumeStudioPage from './pages/ResumeStudioPage';
 import MockInterviewPage from './pages/MockInterviewPage';
+import NotificationsPage from './pages/NotificationsPage';
+import VerifyCertificatePage from './pages/VerifyCertificatePage';
 import Footer from './components/Footer';
 import ChatbotWidget from './components/ChatbotWidget';
 import OnboardingWizard from './components/OnboardingWizard';
 import LeaderboardModal from './components/LeaderboardModal';
 import AuthGuard from './components/AuthGuard';
+import { NotificationProvider } from './context/NotificationContext';
+import { supabase } from './services/supabase';
 import './index.css';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
+  const [isInterviewActive, setIsInterviewActive] = useState(false);
+  const [verificationIdToVerify, setVerificationIdToVerify] = useState(null);
   
   // Strict Auth State: Default false (No dummy data when unauthenticated)
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
@@ -66,6 +72,51 @@ export default function App() {
       localStorage.removeItem('interact_user_profile');
     }
   }, [isLoggedIn, userRole, studentProfile]);
+
+  useEffect(() => {
+    const path = window.location.pathname;
+    const searchParams = new URLSearchParams(window.location.search);
+    
+    if (path.startsWith('/verify/')) {
+      const vid = path.split('/verify/')[1];
+      if (vid) {
+        setVerificationIdToVerify(vid);
+        setActiveTab('verify');
+      }
+    } else if (searchParams.has('gd_join')) {
+      setActiveTab('mock-interviews');
+    }
+  }, []);
+
+  // Listen for Supabase OAuth sessions
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
+        const user = session.user;
+        const email = user.email || '';
+        const fullName = user.user_metadata?.full_name || email.split('@')[0] || 'Google Candidate';
+        
+        setStudentProfile(prev => {
+          if (prev && prev.email === email) return prev; // already set
+          return {
+            fullName,
+            email,
+            collegeName: '',
+            branch: '',
+            collegeRank: 'Unranked',
+            globalRank: 'Unranked',
+            cgpa: '',
+          };
+        });
+        setUserRole('student');
+        setIsLoggedIn(true);
+      }
+    });
+
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, []);
 
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
@@ -136,6 +187,7 @@ export default function App() {
   };
 
   return (
+    <NotificationProvider>
     <div className="app-root">
       {/* Hide Navbar during dedicated full-page auth screens */}
       {activeTab !== 'register' && activeTab !== 'login' && (
@@ -184,6 +236,10 @@ export default function App() {
               onNavigate={handleTabChange}
             />
           )
+        )}
+
+        {activeTab === 'verify' && verificationIdToVerify && (
+           <VerifyCertificatePage verificationId={verificationIdToVerify} onNavigate={handleTabChange} />
         )}
 
         {/* Public Modules */}
@@ -256,15 +312,27 @@ export default function App() {
             <MockInterviewPage 
               currentUser={studentProfile}
               onNavigate={handleTabChange}
+              onInterviewStateChange={setIsInterviewActive}
             />
           ) : (
             <AuthGuard featureTitle="AI Mock Interview Simulator & IDE" onNavigate={handleTabChange} />
           )
         )}
+
+        {/* Protected Feature: Notifications Center */}
+        {activeTab === 'notifications' && (
+          isLoggedIn ? (
+            <NotificationsPage 
+              onNavigate={handleTabChange}
+            />
+          ) : (
+            <AuthGuard featureTitle="Notification Center" onNavigate={handleTabChange} />
+          )
+        )}
       </main>
 
-      {/* Footer (Hidden on dedicated full-page auth screens) */}
-      {activeTab !== 'register' && activeTab !== 'login' && (
+      {/* Footer (Hidden on dedicated full-page auth screens and active interviews) */}
+      {activeTab !== 'register' && activeTab !== 'login' && !isInterviewActive && (
         <Footer 
           onTabChange={handleTabChange} 
           onAdminLoginClick={() => handleTabChange('login')}
@@ -273,7 +341,7 @@ export default function App() {
 
       {/* Floating Chatbot Widget in Bottom-Right Corner */}
       <ChatbotWidget 
-        isHidden={activeTab === 'interview-active' || activeTab === 'register' || activeTab === 'login'} 
+        isHidden={isInterviewActive || activeTab === 'register' || activeTab === 'login'} 
         onNavigate={handleTabChange}
       />
 
@@ -292,5 +360,6 @@ export default function App() {
         onSelectUserProfile={(user) => alert(`Viewing public profile for ${user.name}`)}
       />
     </div>
+    </NotificationProvider>
   );
 }

@@ -3,8 +3,12 @@ const { Pool } = pkg;
 import dotenv from 'dotenv';
 dotenv.config();
 
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL is missing. Please configure it in your backend/.env file.");
+}
+
 export const dbPool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:db%40interact.ai@db.jueocxhfynultunhwixf.supabase.co:5432/postgres',
+  connectionString: process.env.DATABASE_URL,
   ssl: {
     rejectUnauthorized: false
   }

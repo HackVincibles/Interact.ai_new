@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Check, X, ShieldCheck, Key } from 'lucide-react';
 import { signInWithGoogle, signInWithGitHub } from '../services/supabase';
+import ResetPasswordFlow from './ResetPasswordFlow';
 import './AuthModal.css';
 
 export default function AuthModal({ initialMode = 'login', isOpen, onClose, onAuthSuccess }) {
@@ -64,13 +65,7 @@ export default function AuthModal({ initialMode = 'login', isOpen, onClose, onAu
       setOauthLoading(true);
       await signInWithGoogle();
     } catch (err) {
-      console.warn('Google OAuth redirected or requires Supabase Dashboard setup:', err);
-      onAuthSuccess({
-        fullName: 'Google Candidate',
-        email: 'student@google.com',
-        isNewUser: mode === 'signup',
-        role: 'student',
-      });
+      console.warn('Google OAuth error:', err);
     } finally {
       setOauthLoading(false);
     }
@@ -81,13 +76,7 @@ export default function AuthModal({ initialMode = 'login', isOpen, onClose, onAu
       setOauthLoading(true);
       await signInWithGitHub();
     } catch (err) {
-      console.warn('GitHub OAuth redirected or requires Supabase Dashboard setup:', err);
-      onAuthSuccess({
-        fullName: 'GitHub Candidate',
-        email: 'student@github.com',
-        isNewUser: mode === 'signup',
-        role: 'student',
-      });
+      console.warn('GitHub OAuth error:', err);
     } finally {
       setOauthLoading(false);
     }
@@ -149,6 +138,14 @@ export default function AuthModal({ initialMode = 'login', isOpen, onClose, onAu
     <div className="auth-overlay animate-fade-in">
       <div className="auth-backdrop" onClick={onClose}></div>
 
+      {mode === 'reset' ? (
+        <div style={{ position: 'relative', zIndex: 10, width: '100%', maxWidth: '440px', margin: 'auto' }}>
+          <button className="auth-close-btn" onClick={onClose} title="Close" style={{ position: 'absolute', top: '24px', right: '24px', zIndex: 20 }}>
+            <X size={20} color="#fff" />
+          </button>
+          <ResetPasswordFlow onCancel={() => setMode('login')} onSuccess={() => setMode('login')} />
+        </div>
+      ) : (
       <div className="auth-card card-base">
         {/* Close Button */}
         <button className="auth-close-btn" onClick={onClose} title="Close">
@@ -239,7 +236,13 @@ export default function AuthModal({ initialMode = 'login', isOpen, onClose, onAu
             <div className="label-row">
               <label>Password</label>
               {mode === 'login' && (
-                <a href="#forgot" className="forgot-link">Forgot Password?</a>
+                <button 
+                  type="button" 
+                  className="link-action-btn forgot-link" 
+                  onClick={() => setMode('reset')}
+                >
+                  Forgot Password?
+                </button>
               )}
             </div>
             <div className="input-field-wrapper">
@@ -348,6 +351,7 @@ export default function AuthModal({ initialMode = 'login', isOpen, onClose, onAu
           )}
         </div>
       </div>
+      )}
     </div>
   );
 }

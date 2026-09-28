@@ -1,0 +1,165 @@
+.verify-page-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: var(--bg-main);
+  padding: 20px;
+}
+
+.verify-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  padding: 40px;
+  width: 100%;
+  max-width: 600px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.certificate-layout {
+  max-width: 800px;
+  padding: 20px;
+  background: #f8fafc; /* slight off-white for paper feel */
+  color: #1e293b;
+}
+
+.cert-border {
+  border: 12px double var(--primary-purple);
+  padding: 40px;
+  border-radius: 8px;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.cert-header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+}
+
+.cert-header h2 {
+  color: var(--primary-purple);
+  font-size: 2rem;
+  margin: 0;
+  letter-spacing: 2px;
+}
+
+.cert-body {
+  margin: 20px 0;
+}
+
+.cert-body h3 {
+  color: #64748b;
+  letter-spacing: 4px;
+  margin-bottom: 24px;
+  font-size: 1.2rem;
+}
+
+.cert-presented-to, .cert-description {
+  color: #94a3b8;
+  font-style: italic;
+  margin-bottom: 8px;
+}
+
+.cert-recipient {
+  font-family: 'Georgia', serif;
+  font-size: 3rem;
+  color: #0f172a;
+  margin-bottom: 24px;
+  border-bottom: 1px solid #cbd5e1;
+  display: inline-block;
+  padding: 0 40px 10px;
+}
+
+.cert-title {
+  font-size: 1.8rem;
+  color: var(--primary-purple);
+  margin-bottom: 12px;
+}
+
+.cert-achievement {
+  font-size: 1.1rem;
+  color: #475569;
+}
+
+.cert-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-top: 40px;
+}
+
+.cert-date, .cert-signature {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.cert-signature .signature-line {
+  width: 150px;
+  border-bottom: 1px solid #94a3b8;
+}
+
+.cert-date .value {
+  font-weight: bold;
+  color: #334155;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #94a3b8;
+  width: 150px;
+}
+
+.cert-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.cert-id {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-family: monospace;
+}
+
+.spinner {
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-top: 4px solid var(--primary-purple);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 20px auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.verify-actions {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  gap: 12px;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  .verify-page-container {
+    background: white !important;
+    padding: 0 !important;
+  }
+  .verify-card {
+    box-shadow: none !important;
+    border: none !important;
+  }
+}

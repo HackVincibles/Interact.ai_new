@@ -55,29 +55,45 @@ Return strictly JSON with schema:
 }
 `;
 
-    try {
-      const result = await geminiFlash.generateContent(prompt);
-      const text = result.response.text();
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
-      }
-    } catch (e) {
-      console.warn('Gemini structured job extraction fallback:', e.message);
-    }
+    const maxRetries = 2; // Allow up to 2 retries (3 total attempts)
+    let attempt = 0;
 
-    return {
-      title: 'Software Development Engineer',
-      company: 'Tech Enterprise',
-      description: rawText.slice(0, 500),
-      location: ['India'],
-      remote: true,
-      employmentType: 'Full Time',
-      experienceLevel: 'Entry / SDE-1',
-      skills: ['Data Structures', 'React', 'Node.js'],
-      salary: { min: 800000, max: 1800000, currency: 'INR' },
-      applyUrl: sourceUrl,
-    };
+    while (attempt <= maxRetries) {
+      try {
+        const result = await geminiFlash.generateContent(prompt);
+        const text = result.response.text();
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          return JSON.parse(jsonMatch[0]);
+        }
+        throw new Error("No JSON found in response");
+      } catch (e) {
+        const errMsg = e.message || '';
+        
+        // Detect 429 Rate Limit
+        if (errMsg.includes('429 Too Many Requests') || errMsg.includes('Quota exceeded')) {
+          if (attempt >= maxRetries) {
+            throw new Error(`[RATE_LIMITED] Gemini rate limit encountered and retries exhausted.`);
+          }
+          
+          // Try to extract "Please retry in XXs"
+          const retryMatch = errMsg.match(/retry in (\d+(?:\.\d+)?)s/);
+          let waitTimeMs = 10000; // Default 10s backoff
+          if (retryMatch && retryMatch[1]) {
+             waitTimeMs = Math.ceil(parseFloat(retryMatch[1])) * 1000 + 1000; // add 1 second buffer
+          } else {
+             // Exponential backoff
+             waitTimeMs = (attempt + 1) * 15000; 
+          }
+          
+          console.warn(`[Gemini 429] Rate limit hit. Retrying in ${waitTimeMs}ms (Attempt ${attempt + 1}/${maxRetries})`);
+          await new Promise((resolve) => setTimeout(resolve, waitTimeMs));
+          attempt++;
+        } else {
+          throw new Error(`Gemini extraction failed: ${errMsg}`);
+        }
+      }
+    }
   }
 
   /**

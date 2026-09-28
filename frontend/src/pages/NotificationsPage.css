@@ -1,0 +1,32 @@
+.notifications-page-root .icon-action-btn:hover {
+  color: #ef4444 !important;
+}
+
+.notifications-page-root .filter-btn:hover:not(.active) {
+  background: var(--bg-hover) !important;
+}
+
+@media (max-width: 768px) {
+  .notifications-page-root .hide-mobile {
+    display: none !important;
+  }
+  
+  .notifications-workspace {
+    flex-direction: column;
+  }
+  
+  .notifications-sidebar {
+    width: 100% !important;
+    display: flex !important;
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+  
+  .filter-list {
+    flex-direction: row !important;
+  }
+  
+  .filter-btn {
+    white-space: nowrap;
+  }
+}

@@ -2,11 +2,18 @@ import React, { useState, useEffect } from 'react';
 import InterviewLobby from '../components/InterviewLobby';
 import LiveInterviewStudio from '../components/LiveInterviewStudio';
 import InterviewReportView from '../components/InterviewReportView';
+import GDSetupView from '../components/GDSetupView';
+import GDRoomView from '../components/GDRoomView';
+import GDOnboardingModal from '../components/GDOnboardingModal';
+import RoundLoadingOverlay from '../components/RoundLoadingOverlay';
 import { Award, ShieldCheck, Sparkles, Video, Play, ArrowRight, Brain, Code, Briefcase, Users, LayoutDashboard } from 'lucide-react';
+import { useNotifications } from '../context/NotificationContext';
 import './MockInterviewPage.css';
 
-export default function MockInterviewPage({ currentUser, onNavigate }) {
-  const [stage, setStage] = useState('setup'); // 'setup', 'lobby', 'studio', 'report'
+export default function MockInterviewPage({ currentUser, onNavigate, onInterviewStateChange }) {
+  const [stage, setStage] = useState('setup'); // 'setup', 'lobby', 'studio', 'report', 'gd-setup', 'gd-room'
+  const [showGDOnboarding, setShowGDOnboarding] = useState(false);
+  const { addNotification } = useNotifications();
   const [interviewConfig, setInterviewConfig] = useState({
     type: 'Technical SDE-1',
     duration: '30',
@@ -19,19 +26,52 @@ export default function MockInterviewPage({ currentUser, onNavigate }) {
   const [reportData, setReportData] = useState(null);
   const [currentSessionId, setCurrentSessionId] = useState(null);
   const [practiceHistory, setPracticeHistory] = useState([]);
+  
+  const [isInitializingRound, setIsInitializingRound] = useState(false);
+  const [initializationError, setInitializationError] = useState(false);
+  const [retryAction, setRetryAction] = useState(null);
 
   useEffect(() => {
-    if (stage === 'setup') {
-      fetch('http://localhost:5000/api/interview/history?userId=' + (currentUser?.id || 1))
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            setPracticeHistory(data.history);
-          }
-        })
-        .catch(console.error);
+    if (onInterviewStateChange) {
+      onInterviewStateChange(stage === 'lobby' || stage === 'studio' || stage === 'report' || stage === 'gd-setup' || stage === 'gd-room');
     }
-  }, [stage, currentUser]);
+    
+    if (stage === 'setup') {
+      const params = new URLSearchParams(window.location.search);
+      const gdJoin = params.get('gd_join');
+      
+      if (gdJoin) {
+        setInterviewConfig({
+          type: 'Targeted Practice',
+          duration: '15',
+          targetRole: 'Student',
+          practiceMode: 'targeted',
+          roundType: 'GD'
+        });
+        setCurrentSessionId(gdJoin);
+        window.history.replaceState({}, document.title, window.location.pathname);
+        setStage('gd-room');
+      } else {
+        fetch('http://localhost:5000/api/interview/history?userId=' + (currentUser?.id || 1))
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              setPracticeHistory(data.history);
+            }
+          })
+          .catch(console.error);
+      }
+    }
+  }, [stage, currentUser, onInterviewStateChange]);
+
+  useEffect(() => {
+    // Reset global interview active state when unmounting
+    return () => {
+      if (onInterviewStateChange) {
+        onInterviewStateChange(false);
+      }
+    };
+  }, [onInterviewStateChange]);
 
   const handleLaunchFullInterview = () => {
     setInterviewConfig({
@@ -52,11 +92,16 @@ export default function MockInterviewPage({ currentUser, onNavigate }) {
       practiceMode: 'targeted',
       roundType: roundType
     });
-    setStage('lobby');
+    if (roundType === 'GD') {
+      setShowGDOnboarding(true);
+    } else {
+      setStage('lobby');
+    }
   };
 
-  const handleStartInterviewFromLobby = async ({ stream }) => {
-    setActiveMediaStream(stream);
+  const initializeRound = async (onSuccessCallback) => {
+    setIsInitializingRound(true);
+    setInitializationError(false);
     try {
       const res = await fetch('http://localhost:5000/api/interview/start', {
         method: 'POST',
@@ -68,14 +113,23 @@ export default function MockInterviewPage({ currentUser, onNavigate }) {
           roundType: interviewConfig.roundType,
         }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        setCurrentSessionId(data.sessionId);
-      }
+      if (!res.ok) throw new Error('API Error');
+      const data = await res.json();
+      setCurrentSessionId(data.sessionId);
+      onSuccessCallback();
+      setIsInitializingRound(false);
     } catch (e) {
-      console.warn('Failed to start interview on backend', e);
+      console.warn('Failed to start session on backend', e);
+      setInitializationError(true);
+      setRetryAction(() => () => initializeRound(onSuccessCallback));
     }
-    setStage('studio');
+  };
+
+  const handleStartInterviewFromLobby = async ({ stream }) => {
+    setActiveMediaStream(stream);
+    initializeRound(() => {
+      setStage('studio');
+    });
   };
 
   // Cleanup stream when MockInterviewPage unmounts or stream changes
@@ -106,6 +160,34 @@ export default function MockInterviewPage({ currentUser, onNavigate }) {
     } catch (e) {
       console.warn('Report fetch notice:', e);
     }
+    
+    // Trigger notification
+    addNotification({
+      title: 'Interview Result Ready',
+      message: `Your ${interviewConfig.type || 'Mock'} Interview result is ready.`,
+      category: 'interviews',
+      actionUrl: 'profile',
+      actionLabel: 'View Result',
+      priority: 'important'
+    });
+
+    // Issue certificate
+    try {
+      const token = localStorage.getItem('interact_token');
+      if (token && (currentSessionId || typeof sessionId !== 'undefined')) {
+         await fetch('http://localhost:5000/api/certificates/issue/interview', {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ sessionId: currentSessionId || 'SESSION_LIVE_123' })
+         });
+      }
+    } catch (e) {
+      console.warn('Failed to issue certificate:', e);
+    }
+
     setStage('report');
   };
 
@@ -231,6 +313,48 @@ export default function MockInterviewPage({ currentUser, onNavigate }) {
         />
       )}
 
+      {/* GD Specific Stages */}
+      {stage === 'gd-setup' && (
+        <GDSetupView 
+          currentUser={currentUser}
+          sessionId={currentSessionId}
+          onStartGD={() => {
+            setStage('gd-room');
+          }}
+        />
+      )}
+
+      {stage === 'gd-room' && (
+        <GDRoomView 
+          currentUser={currentUser}
+          onFinishGD={handleFinishInterview}
+        />
+      )}
+
+      <GDOnboardingModal 
+        isOpen={showGDOnboarding}
+        onClose={() => setShowGDOnboarding(false)}
+        onProceed={async () => {
+          setShowGDOnboarding(false);
+          initializeRound(() => {
+            setStage('gd-setup');
+          });
+        }}
+      />
+      
+      {isInitializingRound && (
+        <RoundLoadingOverlay 
+          roundType={interviewConfig.roundType}
+          interviewType={interviewConfig.type}
+          isError={initializationError}
+          onRetry={() => retryAction && retryAction()}
+          onCancel={() => {
+            setIsInitializingRound(false);
+            setInitializationError(false);
+            // Optionally, revert the stage here depending on behavior, but usually staying on current stage is fine
+          }}
+        />
+      )}
     </div>
   );
 }

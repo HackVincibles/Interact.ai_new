@@ -29,6 +29,8 @@ import {
 import { generateCareerRoadmap } from '../services/gemini';
 import InterviewLobby from '../components/InterviewLobby';
 import LiveInterviewStudio from '../components/LiveInterviewStudio';
+import ShareRoadmapModal from '../components/ShareRoadmapModal';
+import { useNotifications } from '../context/NotificationContext';
 import './CareerPathsPage.css';
 
 // Domain Roadmaps Catalog
@@ -291,12 +293,13 @@ const domainRoadmaps = [
     ],
   },
 ];
-
-export default function CareerPathsPage({ onNavigate }) {
+export default function CareerPathsPage({ _onNavigate }) {
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const { addNotification } = useNotifications();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeDomain, setActiveDomain] = useState(null); // If non-null, views visual roadmap
   const [isCounselorOpen, setIsCounselorOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   // Subtopic Checkbox State for Interactive Milestone Tracking (Default 0% for new users)
   const [completedSubtopics, setCompletedSubtopics] = useState({});
@@ -342,10 +345,7 @@ export default function CareerPathsPage({ onNavigate }) {
   };
 
   const handleShareRoadmap = () => {
-    const url = `${window.location.origin}/career-paths?domain=${activeDomain?.id}`;
-    navigator.clipboard.writeText(url)
-      .then(() => alert(`Roadmap link copied to clipboard!\nShare this link to challenge your friends:\n${url}`))
-      .catch(() => alert('Failed to copy link.'));
+    setIsShareModalOpen(true);
   };
 
   // Filtering Logic
@@ -357,11 +357,26 @@ export default function CareerPathsPage({ onNavigate }) {
     return matchesCategory && matchesSearch;
   });
 
-  const handleToggleSubtopic = (subtopicId) => {
-    setCompletedSubtopics((prev) => ({
-      ...prev,
-      [subtopicId]: !prev[subtopicId],
-    }));
+  const handleToggleSubtopic = (subtopicId, title) => {
+    setCompletedSubtopics((prev) => {
+      const isCompleting = !prev[subtopicId];
+      
+      if (isCompleting && title) {
+        addNotification({
+          title: 'Roadmap Milestone Completed',
+          message: `You've completed: "${title}"`,
+          category: 'roadmap',
+          actionUrl: 'career-paths',
+          actionLabel: 'View Roadmap',
+          priority: 'normal'
+        });
+      }
+
+      return {
+        ...prev,
+        [subtopicId]: isCompleting,
+      };
+    });
   };
 
   const calculateDomainProgress = (domain) => {
@@ -598,7 +613,7 @@ export default function CareerPathsPage({ onNavigate }) {
                             <div 
                               key={st.id} 
                               className={`subtopic-item ${isChecked ? 'checked' : ''}`}
-                              onClick={() => handleToggleSubtopic(st.id)}
+                              onClick={() => handleToggleSubtopic(st.id, st.title)}
                             >
                               <input 
                                 type="checkbox" 
@@ -815,6 +830,16 @@ export default function CareerPathsPage({ onNavigate }) {
             )}
           </div>
         </div>
+      )}
+
+      {/* Share Roadmap Modal */}
+      {activeDomain && (
+        <ShareRoadmapModal 
+          isOpen={isShareModalOpen} 
+          onClose={() => setIsShareModalOpen(false)} 
+          activeDomain={activeDomain} 
+          progress={calculateDomainProgress(activeDomain)}
+        />
       )}
 
     </div>

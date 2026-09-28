@@ -16,8 +16,13 @@ import {
   BarChart2,
   Trophy,
   Sun,
-  Moon
+  Moon,
+  Target,
+  ShieldCheck,
+  CheckCircle2,
+  Check
 } from 'lucide-react';
+import { useNotifications } from '../context/NotificationContext';
 import './Navbar.css';
 
 export default function Navbar({ 
@@ -35,6 +40,7 @@ export default function Navbar({
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const [searchQuery, setSearchQuery] = useState('');
 
   const navItems = [
@@ -125,27 +131,57 @@ export default function Navbar({
                   onClick={() => setNotificationOpen(!notificationOpen)}
                 >
                   <Bell size={20} />
-                  <span className="notification-dot"></span>
+                  {unreadCount > 0 && <span className="notification-dot">{unreadCount > 9 ? '9+' : unreadCount}</span>}
                 </button>
                 {notificationOpen && (
                   <div className="notification-dropdown-card">
-                    <div className="dropdown-header">
+                    <div className="dropdown-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <p className="dropdown-title">Notifications</p>
+                      {unreadCount > 0 && (
+                        <button className="mark-all-btn" onClick={markAllAsRead} style={{ fontSize: '0.8rem', color: 'var(--primary-purple)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                          Mark all read
+                        </button>
+                      )}
                     </div>
                     <hr />
                     <div className="notification-list">
-                      <div className="notification-item unread">
-                        <p><strong>New Course:</strong> Advanced System Design is now live!</p>
-                        <span>2h ago</span>
-                      </div>
-                      <div className="notification-item">
-                        <p>Your mock interview score report is ready.</p>
-                        <span>1d ago</span>
-                      </div>
+                      {notifications.length === 0 ? (
+                        <div className="notification-item" style={{ justifyContent: 'center', color: 'var(--text-muted)' }}>
+                          <p>You're all caught up!</p>
+                        </div>
+                      ) : (
+                        notifications.slice(0, 4).map(notif => (
+                          <div 
+                            key={notif.id} 
+                            className={`notification-item ${!notif.read ? 'unread' : ''}`}
+                            onClick={() => {
+                              markAsRead(notif.id);
+                              if (notif.actionUrl && onTabChange) {
+                                onTabChange(notif.actionUrl);
+                                setNotificationOpen(false);
+                              }
+                            }}
+                            style={{ cursor: notif.actionUrl ? 'pointer' : 'default' }}
+                          >
+                            <div>
+                              <p><strong>{notif.title}</strong></p>
+                              <p style={{ fontSize: '0.8rem', color: 'var(--text-light)', margin: '2px 0 4px 0' }}>{notif.message}</p>
+                              <span>{new Date(notif.createdAt).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </div>
                     <hr />
-                    <button className="dropdown-item text-center" style={{justifyContent: 'center'}}>
-                      View All
+                    <button 
+                      className="dropdown-item text-center" 
+                      style={{justifyContent: 'center'}}
+                      onClick={() => {
+                        if (onTabChange) onTabChange('notifications');
+                        setNotificationOpen(false);
+                      }}
+                    >
+                      View all notifications
                     </button>
                   </div>
                 )}

@@ -1,8 +1,11 @@
-// TinyFish Web Intelligence Service (Search & Fetch)
 import dotenv from 'dotenv';
-dotenv.config();
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-const TINYFISH_API_KEY = process.env.TINYFISH_API_KEY || '';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') }); // Root .env
+
 
 export class TinyFishService {
   /**
@@ -12,58 +15,33 @@ export class TinyFishService {
     if (!query) return [];
 
     try {
-      // TinyFish REST API call simulation / HTTP request
-      const response = await fetch('https://api.tinyfish.io/v1/search', {
-        method: 'POST',
+      // TinyFish REST API call
+      const url = new URL('https://api.search.tinyfish.ai');
+      url.searchParams.append('query', query);
+      url.searchParams.append('limit', '10');
+
+      const response = await fetch(url.toString(), {
+        method: 'GET',
         headers: {
+          'X-API-Key': process.env.TINYFISH_API_KEY || '',
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${TINYFISH_API_KEY}`,
         },
-        body: JSON.stringify({
-          query,
-          limit: 10,
-        }),
       }).catch(() => null);
 
       if (response && response.ok) {
         const data = await response.json();
         return data.results || [];
+      } else if (response) {
+        console.warn('TinyFish Search API failed:', response.status, response.statusText);
+      } else {
+        console.warn('TinyFish Search API request failed (no response)');
       }
     } catch (err) {
-      console.warn('TinyFish Search API fallback:', err.message);
+      console.warn('TinyFish Search API exception:', err.message);
     }
 
-    // Fallback Discovery Results for Indian tech ecosystem & top tech companies
-    return [
-      {
-        title: 'Google SDE-1 & Software Engineering Internships 2026',
-        url: 'https://careers.google.com/jobs/results/?location=India',
-        snippet: 'Explore software engineering, algorithms, and system design roles at Google India offices in Bangalore and Hyderabad.',
-        company: 'Google',
-        type: 'CAREERS_PAGE',
-      },
-      {
-        title: 'ISRO Scientist / Engineer SD Recruitment 2026',
-        url: 'https://www.isro.gov.in/Careers.html',
-        snippet: 'Official career openings for Aerospace, Computer Science, and Electronics Engineers at ISRO centers across India.',
-        company: 'ISRO',
-        type: 'CAREERS_PAGE',
-      },
-      {
-        title: 'Microsoft College Hiring & SWE Internships',
-        url: 'https://careers.microsoft.com/students/us/en/india-full-time-opportunities',
-        snippet: 'Full-time software engineering and AI internship opportunities for B.Tech and M.Tech students.',
-        company: 'Microsoft',
-        type: 'CAREERS_PAGE',
-      },
-      {
-        title: 'Razorpay Engineering & Tech Hiring',
-        url: 'https://razorpay.com/jobs',
-        snippet: 'Fintech platform hiring Full Stack, Backend (Go/Java), and Frontend React Engineers.',
-        company: 'Razorpay',
-        type: 'CAREERS_PAGE',
-      },
-    ];
+    // If no results or fetch failed, return empty array
+    return [];
   }
 
   /**
@@ -71,18 +49,21 @@ export class TinyFishService {
    */
   static async fetchUrl(targetUrl) {
     try {
-      const response = await fetch('https://api.tinyfish.io/v1/fetch', {
+      const response = await fetch('https://api.fetch.tinyfish.ai', {
         method: 'POST',
         headers: {
+          'X-API-Key': process.env.TINYFISH_API_KEY || '',
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${TINYFISH_API_KEY}`,
         },
-        body: JSON.stringify({ url: targetUrl }),
+        body: JSON.stringify({ urls: [targetUrl] }),
       }).catch(() => null);
 
       if (response && response.ok) {
         const data = await response.json();
-        return data.content || data.html || null;
+        if (data && data.results && data.results.length > 0) {
+           const res = data.results[0];
+           return res.text || res.content || res.html || null;
+        }
       }
     } catch (err) {
       console.warn('TinyFish Fetch API notice:', err.message);

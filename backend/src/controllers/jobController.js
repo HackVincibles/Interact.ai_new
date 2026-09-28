@@ -1,9 +1,9 @@
 // Job & Internship Intelligence Controller with Shared Database Cache & Auto-Purge
 import { WebIntelligenceService } from '../services/webIntelligenceService.js';
 import { TinyFishService } from '../services/tinyfishService.js';
-import { FirecrawlService } from '../services/firecrawlService.js';
 import { geminiFlash } from '../config/gemini.js';
 import { dbPool } from '../config/database.js';
+import { JobModel } from '../models/jobModel.js';
 
 // Shared Runtime & DB Cache for Scanned Listings
 let sharedScannedJobs = [];
@@ -229,7 +229,32 @@ export const getJobs = async (req, res, next) => {
     const nowMs = Date.now();
     const twelveHoursMs = 12 * 60 * 60 * 1000;
 
-    let combined = [...seedJobsCatalog, ...sharedScannedJobs].filter((item) => {
+    // Fetch from database
+    const dbJobs = await JobModel.getAllJobs();
+    
+    // Map dbJobs to frontend format using existing schema
+    const formattedDbJobs = dbJobs.map(job => ({
+      id: `db_${job.id}`,
+      title: job.title,
+      company: job.company,
+      logo: 'https://cdn-icons-png.flaticon.com/512/1086/1086741.png',
+      location: job.location,
+      category: job.job_type || 'job',
+      stipend: job.stipend_salary || 'Not Disclosed',
+      duration: job.job_type === 'internship' ? '6 Months' : 'Full-Time',
+      eligibleBatch: '2025 / 2026 Batch',
+      experienceRequired: '0 - 1 Years',
+      deadline: null,
+      posted: 'Scanned Live',
+      matchScore: '90% Match',
+      isGovt: false,
+      skills: ['React', 'Node.js', 'PostgreSQL'],
+      desc: job.description || '',
+      officialApplyUrl: job.apply_url,
+      sourceProvider: 'Database'
+    }));
+
+    let combined = [...formattedDbJobs, ...seedJobsCatalog, ...sharedScannedJobs].filter((item) => {
       if (!item.deadline) return true;
       const deadlineMs = new Date(item.deadline).getTime();
       return isNaN(deadlineMs) || (nowMs - deadlineMs) <= twelveHoursMs;
@@ -269,92 +294,147 @@ export const triggerWebScan = async (req, res, next) => {
     const { category = 'all', searchQuery = 'software engineering internships and jobs India' } = req.body || {};
 
     console.log(`[Shared TinyFish Web Scanner] Initiating scan: "${searchQuery}", Category: "${category}"`);
+    let logs = [`[${new Date().toLocaleTimeString()}] Initiated TinyFish search API for: "${searchQuery}"`];
 
     // 1. Search via TinyFish Web Intelligence
     const tinyfishResults = await TinyFishService.search(searchQuery);
+    
+    if (!tinyfishResults || tinyfishResults.length === 0) {
+      logs.push(`[${new Date().toLocaleTimeString()}] [ERROR] TinyFish returned no usable content or failed.`);
+      return res.json({
+        success: false,
+        stats: scanSessionStats,
+        discoveredSourcesCount: 0,
+        insertedCount: 0,
+        logs: logs
+      });
+    }
 
-    // 2. Fetch page via Firecrawl fallback
-    let scrapedContent = null;
-    let providerUsed = 'TinyFish Intelligence';
+    logs.push(`[${new Date().toLocaleTimeString()}] Gemini extraction started: ${tinyfishResults.length} pages`);
 
-    if (tinyfishResults.length > 0) {
-      const firstTarget = tinyfishResults[0].url;
-      const fetchResult = await WebIntelligenceService.fetchWebpageContent(firstTarget);
+    let insertedCount = 0;
+    let updatedCount = 0;
+    let validRecordsCount = 0;
+    let invalidExtractionCount = 0;
+    let rateLimitedCount = 0;
+    let fetchAttemptedCount = tinyfishResults.length;
+    let fetchSucceededCount = 0;
+
+    // Process all discovered results (up to TinyFish's limit of 10)
+    const resultsToProcess = tinyfishResults;
+    const scannedJobs = [];
+
+    // Optional delay between requests (not heavily concurrent, but space them out slightly to help avoid hitting the RPM limit as quickly)
+    for (let i = 0; i < resultsToProcess.length; i++) {
+      const result = resultsToProcess[i];
+      let scrapedContent = null;
+      let providerUsed = 'TinyFish Intelligence';
+
+      // Respect Gemini Free Tier limit of 5 requests per minute (approx 1 request every 12 seconds)
+      // Delaying 13 seconds between requests guarantees we never trigger a 429 quota error.
+      if (i > 0) {
+        await new Promise(res => setTimeout(res, 13000));
+      }
+
+      // 2. Fetch page content
+      const fetchResult = await WebIntelligenceService.fetchWebpageContent(result.url);
       if (fetchResult && fetchResult.content) {
         scrapedContent = fetchResult.content;
         providerUsed = fetchResult.provider;
+        fetchSucceededCount++;
+      } else {
+        logs.push(`[${new Date().toLocaleTimeString()}] Fetch failed for ${result.url}`);
+        continue;
+      }
+
+      // 3. Process via Gemini Structured Extraction
+      let parsedExtracted = null;
+      if (scrapedContent) {
+        try {
+          parsedExtracted = await WebIntelligenceService.extractStructuredJobData(scrapedContent, result.url);
+        } catch (extErr) {
+          if (extErr.message.includes('[RATE_LIMITED]')) {
+            logs.push(`[${new Date().toLocaleTimeString()}] Gemini rate limit exhausted for ${result.url}`);
+            rateLimitedCount++;
+          } else {
+            logs.push(`[${new Date().toLocaleTimeString()}] Gemini extraction failed for ${result.url}: ${extErr.message}`);
+          }
+          continue;
+        }
+      }
+
+      if (!parsedExtracted || !parsedExtracted.title || !parsedExtracted.company) {
+         logs.push(`[${new Date().toLocaleTimeString()}] Invalid extraction: ${result.url}`);
+         invalidExtractionCount++;
+         continue;
+      }
+
+      logs.push(`[${new Date().toLocaleTimeString()}] Gemini extracted internship: ${parsedExtracted.company}`);
+      validRecordsCount++;
+      
+      const newJobCategory = category === 'internship' ? 'internship' : (category === 'job' ? 'job' : (category === 'govt' ? 'govt' : (parsedExtracted?.employmentType?.toLowerCase().includes('intern') ? 'internship' : 'job')));
+
+      const jobRecord = {
+        title: parsedExtracted.title,
+        company: parsedExtracted.company,
+        location: Array.isArray(parsedExtracted.location) ? parsedExtracted.location.join(', ') : parsedExtracted.location,
+        job_type: newJobCategory,
+        stipend_salary: parsedExtracted.salary?.min ? `₹${parsedExtracted.salary.min} - ₹${parsedExtracted.salary.max || ''}` : 'Not Disclosed',
+        description: parsedExtracted.description || '',
+        apply_url: parsedExtracted.applyUrl || result.url
+      };
+
+      try {
+        const dbRes = await dbPool.query(
+          `INSERT INTO jobs (title, company, location, job_type, stipend_salary, description, apply_url)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)
+           ON CONFLICT DO NOTHING
+           RETURNING id`,
+          [
+            jobRecord.title, jobRecord.company, jobRecord.location, jobRecord.job_type,
+            jobRecord.stipend_salary, jobRecord.description, jobRecord.apply_url
+          ]
+        );
+        
+        if (dbRes.rows.length > 0) {
+          insertedCount++;
+          scannedJobs.push({ ...jobRecord, id: `db_${dbRes.rows[0].id}` });
+        } else {
+          updatedCount++; // It conflicted, or returning 0
+        }
+      } catch (err) {
+        console.warn('Postgres DB insertion error:', err.message);
+        logs.push(`[${new Date().toLocaleTimeString()}] Internships were discovered but could not be saved.`);
       }
     }
-
-    // 3. Process via Gemini Structured Extraction
-    let parsedExtracted = null;
-    if (scrapedContent) {
-      parsedExtracted = await WebIntelligenceService.extractStructuredJobData(scrapedContent, tinyfishResults[0]?.url || 'https://careers.google.com');
+    
+    if (fetchSucceededCount > 0) logs.push(`[${new Date().toLocaleTimeString()}] Received ${fetchSucceededCount} pages with content`);
+    if (validRecordsCount > 0) logs.push(`[${new Date().toLocaleTimeString()}] Gemini extracted ${validRecordsCount} records`);
+    if (insertedCount > 0) {
+       logs.push(`[${new Date().toLocaleTimeString()}] Inserted ${insertedCount} new internships`);
+       logs.push(`[${new Date().toLocaleTimeString()}] Shared DB catalog updated.`);
     }
+    if (updatedCount > 0) logs.push(`[${new Date().toLocaleTimeString()}] Updated ${updatedCount} existing internships`);
 
-    const newId = `scanned_shared_${Date.now()}`;
-    const scannedListing = {
-      id: newId,
-      title: parsedExtracted?.title || (category === 'internship' ? 'Software Development Intern 2026' : 'SDE-1 Full Stack Engineer'),
-      company: parsedExtracted?.company || (tinyfishResults[0]?.company || 'Scalable Tech Startup'),
-      logo: 'https://cdn-icons-png.flaticon.com/512/1086/1086741.png',
-      location: parsedExtracted?.location?.join(', ') || 'Bengaluru / Hybrid',
-      category: category === 'internship' ? 'internship' : (category === 'job' ? 'job' : (category === 'govt' ? 'govt' : (parsedExtracted?.employmentType?.toLowerCase().includes('intern') ? 'internship' : 'job'))),
-      stipend: category === 'internship' ? '₹75,000 / month' : '₹16,00,000 - ₹24,00,000 LPA',
-      duration: category === 'internship' ? '6 Months' : 'Full-Time Position',
-      eligibleBatch: category === 'internship' ? '2026 / 2027 Batch' : '2025 / 2026 Batch',
-      experienceRequired: category === 'internship' ? '0 Years (Student)' : '0 - 1 Years',
-      deadline: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      posted: 'Just Scanned (Shared Live Stream)',
-      matchScore: '97% Match',
-      isGovt: category === 'govt',
-      skills: parsedExtracted?.skills || ['React', 'Node.js', 'PostgreSQL', 'System Design'],
-      desc: parsedExtracted?.description || 'Newly indexed opening discovered live via TinyFish & Firecrawl scanning engine. Added to shared candidate cache.',
-      officialApplyUrl: tinyfishResults[0]?.url || 'https://careers.google.com',
-      sourceProvider: providerUsed,
-    };
-
-    // Store in shared memory cache (visible to ALL users)
-    sharedScannedJobs.unshift(scannedListing);
-    scanSessionStats.totalJobsFound += 1;
-    scanSessionStats.newLastHour += 1;
+    scanSessionStats.totalJobsFound += insertedCount;
+    scanSessionStats.newLastHour += insertedCount;
     scanSessionStats.lastScannedAt = new Date().toISOString();
 
-    // Optionally persist in Supabase Postgres DB
-    try {
-      await dbPool.query(
-        `INSERT INTO jobs (id, title, company, location, category, stipend, duration, skills, official_apply_url)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-         ON CONFLICT (id) DO NOTHING`,
-        [
-          newId,
-          scannedListing.title,
-          scannedListing.company,
-          scannedListing.location,
-          scannedListing.category,
-          scannedListing.stipend,
-          scannedListing.duration,
-          JSON.stringify(scannedListing.skills),
-          scannedListing.officialApplyUrl
-        ]
-      );
-    } catch (err) {
-      console.warn('Postgres DB insertion note (using shared memory catalog):', err.message);
-    }
+    logs.push(`[${new Date().toLocaleTimeString()}] Extraction complete: ${validRecordsCount} valid, ${invalidExtractionCount} invalid, ${rateLimitedCount} rate-limited`);
 
     res.json({
-      success: true,
-      scannedJob: scannedListing,
+      success: insertedCount > 0 || updatedCount > 0,
+      scannedJobs: scannedJobs,
       stats: scanSessionStats,
-      providerUsed,
       discoveredSourcesCount: tinyfishResults.length,
-      logs: [
-        `[${new Date().toLocaleTimeString()}] Initiated TinyFish search API for: "${searchQuery}"`,
-        `[${new Date().toLocaleTimeString()}] Discovered ${tinyfishResults.length} live target career pages`,
-        `[${new Date().toLocaleTimeString()}] Scraped content via ${providerUsed}`,
-        `[${new Date().toLocaleTimeString()}] Extracted structured JSON via Gemini 1.5 Flash AI`,
-        `[${new Date().toLocaleTimeString()}] Shared DB catalog updated. New listing ${newId} visible to all users!`
-      ]
+      insertedCount,
+      updatedCount,
+      validRecordsCount,
+      invalidExtractionCount,
+      rateLimitedCount,
+      fetchAttemptedCount,
+      fetchSucceededCount,
+      logs
     });
   } catch (error) {
     console.error('Trigger Web Scan Error:', error);

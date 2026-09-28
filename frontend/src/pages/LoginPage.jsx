@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Mail, Lock, Key, ArrowRight } from 'lucide-react';
 import { signInWithGoogle } from '../services/supabase';
+import ResetPasswordFlow from '../components/ResetPasswordFlow';
 import './LoginPage.css';
 
 export default function LoginPage({ onNavigate, onLoginSuccess }) {
   const [isAdminMode, setIsAdminMode] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -35,14 +37,7 @@ export default function LoginPage({ onNavigate, onLoginSuccess }) {
       await signInWithGoogle();
     } catch (err) {
       console.warn('Google OAuth notice:', err);
-    } finally {
       setOauthLoading(false);
-      onLoginSuccess({
-        fullName: 'Google Candidate',
-        email: 'candidate@gmail.com',
-        collegeName: 'University Candidate',
-        branch: 'Computer Science',
-      });
     }
   };
 
@@ -95,7 +90,13 @@ export default function LoginPage({ onNavigate, onLoginSuccess }) {
 
       {/* Main Auth Container */}
       <div className="container auth-content-container">
-        <div className="auth-box card-base">
+        {isResettingPassword ? (
+          <ResetPasswordFlow 
+            onCancel={() => setIsResettingPassword(false)}
+            onSuccess={() => setIsResettingPassword(false)}
+          />
+        ) : (
+          <div className="auth-box card-base">
           <div className="auth-box-header">
             <span className="section-label">
               {isAdminMode ? 'ADMIN PORTAL ACCESS' : 'STUDENT AUTHENTICATION'}
@@ -144,7 +145,15 @@ export default function LoginPage({ onNavigate, onLoginSuccess }) {
             <div className="form-group">
               <div className="label-row">
                 <label>Password</label>
-                {!isAdminMode && <a href="#forgot" className="forgot-link">Forgot Password?</a>}
+                {!isAdminMode && (
+                  <button 
+                    type="button" 
+                    className="link-action-btn forgot-link" 
+                    onClick={() => setIsResettingPassword(true)}
+                  >
+                    Forgot Password?
+                  </button>
+                )}
               </div>
               <div className="input-field-wrapper">
                 <Lock size={18} className="field-icon" />
@@ -197,6 +206,7 @@ export default function LoginPage({ onNavigate, onLoginSuccess }) {
             )}
           </div>
         </div>
+        )}
       </div>
     </div>
   );

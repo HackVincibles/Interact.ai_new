@@ -41,14 +41,7 @@ export default function RegisterPage({ onNavigate, onRegisterSuccess }) {
       await signInWithGoogle();
     } catch (err) {
       console.warn('Google OAuth notice:', err);
-    } finally {
       setOauthLoading(false);
-      onRegisterSuccess({
-        fullName: 'Google Candidate',
-        email: 'candidate@gmail.com',
-        collegeName: '',
-        branch: '',
-      });
     }
   };
 

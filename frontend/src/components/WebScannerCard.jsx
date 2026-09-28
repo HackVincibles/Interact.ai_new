@@ -12,6 +12,7 @@ import {
   ExternalLink,
   Sparkles
 } from 'lucide-react';
+import { useNotifications } from '../context/NotificationContext';
 import './WebScannerCard.css';
 
 export default function WebScannerCard({ 
@@ -23,6 +24,7 @@ export default function WebScannerCard({
   const [isScanning, setIsScanning] = useState(false);
   const [logs, setLogs] = useState([]);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const { addNotification } = useNotifications();
 
   const handleRunScan = async () => {
     try {
@@ -40,15 +42,35 @@ export default function WebScannerCard({
 
       if (res.ok) {
         const data = await res.json();
+        
+        // Push the backend logs directly (newest at top)
         if (data.logs) {
-          setLogs((prev) => [...data.logs, ...prev]);
+          const reversedLogs = [...data.logs].reverse();
+          setLogs((prev) => [...reversedLogs, ...prev]);
         }
-        if (onScanComplete) {
-          onScanComplete(data.scannedJob);
+
+        // Format the DB records to match the frontend UI schema
+        if (onScanComplete && data.scannedJobs && data.scannedJobs.length > 0) {
+          
+          if (notificationsEnabled) {
+            addNotification({
+              title: `New ${category === 'internship' ? 'Internship' : 'Job'} Matches`,
+              message: `Scanner discovered ${data.scannedJobs.length} new ${category === 'internship' ? 'internships' : 'jobs'} matching your profile.`,
+              category: category === 'internship' ? 'internships' : 'jobs',
+              actionUrl: category === 'internship' ? 'internships' : 'jobs',
+              actionLabel: 'Explore',
+              priority: 'normal'
+            });
+          }
+
+          // Pass each job up, or trigger a full refresh. For simplicity since handleScanNewItem expects one job or we can just trigger full refresh
+          onScanComplete(); 
+        } else if (onScanComplete) {
+          onScanComplete(); 
         }
       }
     } catch (err) {
-      setLogs((prev) => [`[${new Date().toLocaleTimeString()}] Scanner fallback triggered.`, ...prev]);
+      setLogs((prev) => [`[${new Date().toLocaleTimeString()}] Scanner failed: ${err.message}`, ...prev]);
     } finally {
       setTimeout(() => {
         setIsScanning(false);
