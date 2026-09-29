@@ -184,7 +184,74 @@
   border-radius: 6px;
 }
 
-.q-fb-note { font-size: 0.84rem; color: var(--text-muted); }
+.q-fb-note { font-size: 0.84rem; color: var(--text-muted); margin-bottom: 0; }
+
+/* Score badge color variants */
+.q-score-badge { font-size: 0.78rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; }
+.q-score-badge.score-good { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); }
+.q-score-badge.score-mid  { background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); }
+.q-score-badge.score-low  { background: rgba(239, 68, 68, 0.15);  color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
+
+/* ── Answer Comparison ─────────────────────────────────────── */
+.q-answer-comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+@media (max-width: 700px) {
+  .q-answer-comparison { grid-template-columns: 1fr; }
+}
+
+.q-answer-block {
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.answer-user {
+  background: rgba(239, 68, 68, 0.07);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.answer-ideal {
+  background: rgba(16, 185, 129, 0.07);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.answer-block-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.answer-user .answer-block-label  { color: #f87171; }
+.answer-ideal .answer-block-label { color: #34d399; }
+
+.label-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.dot-red   { background: #ef4444; box-shadow: 0 0 6px rgba(239,68,68,0.5); }
+.dot-green { background: #10b981; box-shadow: 0 0 6px rgba(16,185,129,0.5); }
+
+.answer-block-text {
+  font-size: 0.85rem;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.answer-user  .answer-block-text { color: #fca5a5; }
+.answer-ideal .answer-block-text { color: #6ee7b7; }
 
 .restart-btn {
   width: 100%;

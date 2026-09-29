@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Mail, Lock, User, ArrowRight, Check } from 'lucide-react';
-import { signInWithGoogle } from '../services/supabase';
+import { signInWithGoogle } from '../services/firebase';
 import './RegisterPage.css';
 
 export default function RegisterPage({ onNavigate, onRegisterSuccess }) {

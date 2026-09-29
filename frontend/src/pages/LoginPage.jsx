@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Mail, Lock, Key, ArrowRight } from 'lucide-react';
-import { signInWithGoogle } from '../services/supabase';
+import { signInWithGoogle } from '../services/firebase';
 import ResetPasswordFlow from '../components/ResetPasswordFlow';
 import './LoginPage.css';
 

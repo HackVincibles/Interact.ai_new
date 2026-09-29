@@ -189,7 +189,7 @@ Return ONLY valid JSON format with schema exactly matching:
   "weaknesses": ["...", "..."],
   "topicsToImprove": ["...", "..."],
   "questionFeedback": [
-    { "q": "summary of question asked", "score": number, "note": "specific feedback on their answer" }
+    { "q": "the full question asked", "score": number, "note": "specific feedback on their answer", "userAnswer": "a concise summary of what the candidate actually said", "idealAnswer": "a concise model answer they should have given" }
   ],
   "recommendedPractice": "actionable study plan"
 }
@@ -212,7 +212,7 @@ Return ONLY valid JSON format with schema exactly matching:
   "weaknesses": ["...", "..."],
   "topicsToImprove": ["...", "..."],
   "questionFeedback": [
-    { "q": "summary of question asked", "score": number, "note": "specific feedback on their answer" }
+    { "q": "the full question asked", "score": number, "note": "specific feedback on their answer", "userAnswer": "a concise summary of what the candidate actually said", "idealAnswer": "a concise model answer they should have given" }
   ],
   "recommendedPractice": "actionable study plan"
 }

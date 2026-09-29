@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Check, X, ShieldCheck, Key } from 'lucide-react';
-import { signInWithGoogle, signInWithGitHub } from '../services/supabase';
+import { signInWithGoogle, signInWithGitHub } from '../services/firebase';
 import ResetPasswordFlow from './ResetPasswordFlow';
 import './AuthModal.css';
 

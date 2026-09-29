@@ -14,13 +14,14 @@ import ResumeStudioPage from './pages/ResumeStudioPage';
 import MockInterviewPage from './pages/MockInterviewPage';
 import NotificationsPage from './pages/NotificationsPage';
 import VerifyCertificatePage from './pages/VerifyCertificatePage';
+import ErrorPage from './pages/ErrorPage';
 import Footer from './components/Footer';
 import ChatbotWidget from './components/ChatbotWidget';
 import OnboardingWizard from './components/OnboardingWizard';
 import LeaderboardModal from './components/LeaderboardModal';
 import AuthGuard from './components/AuthGuard';
 import { NotificationProvider } from './context/NotificationContext';
-import { supabase } from './services/supabase';
+import { auth, logOut as firebaseLogOut } from './services/firebase';
 import './index.css';
 
 export default function App() {
@@ -88,16 +89,20 @@ export default function App() {
     }
   }, []);
 
-  // Listen for Supabase OAuth sessions
+  // Firebase Auth listener - proven working with Google OAuth
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
-        const user = session.user;
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      console.log('[AUTH] event: onAuthStateChanged');
+      console.log('[AUTH] has user:', !!user);
+
+      if (user) {
         const email = user.email || '';
-        const fullName = user.user_metadata?.full_name || email.split('@')[0] || 'Google Candidate';
-        
+        const fullName = user.displayName || email.split('@')[0] || 'Google Candidate';
+        console.log('[AUTH] provider:', user.providerData?.[0]?.providerId || 'unknown');
+        console.log('[AUTH] app status: AUTHENTICATED');
+
         setStudentProfile(prev => {
-          if (prev && prev.email === email) return prev; // already set
+          if (prev && prev.email === email) return prev;
           return {
             fullName,
             email,
@@ -110,12 +115,18 @@ export default function App() {
         });
         setUserRole('student');
         setIsLoggedIn(true);
+        localStorage.setItem('interact_is_logged_in', 'true');
+      } else {
+        console.log('[AUTH] app status: UNAUTHENTICATED');
+        localStorage.removeItem('interact_is_logged_in');
+        localStorage.removeItem('interact_user_profile');
+        localStorage.removeItem('interact_user_role');
+        setIsLoggedIn(false);
+        setStudentProfile(null);
       }
     });
 
-    return () => {
-      subscription?.unsubscribe();
-    };
+    return () => unsubscribe();
   }, []);
 
   const handleTabChange = (tabId) => {
@@ -328,6 +339,16 @@ export default function App() {
           ) : (
             <AuthGuard featureTitle="Notification Center" onNavigate={handleTabChange} />
           )
+        )}
+
+        {/* Catch-all: 404 for any unknown tab */}
+        {![
+          'home', 'register', 'login', 'career-paths', 'courses',
+          'internships', 'jobs', 'resources', 'resume-studio',
+          'mock-interviews', 'leaderboard', 'profile', 'notifications',
+          'verify',
+        ].includes(activeTab) && (
+          <ErrorPage code={404} onNavigate={handleTabChange} />
         )}
       </main>
 

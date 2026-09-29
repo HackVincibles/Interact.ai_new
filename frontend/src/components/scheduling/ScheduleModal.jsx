@@ -4,14 +4,16 @@ import TimeSlotSelector from './TimeSlotSelector';
 import ReminderSettings from './ReminderSettings';
 import ScheduleSummary from './ScheduleSummary';
 import { useNotifications } from '../../context/NotificationContext';
-import { X, Calendar, Clock, Bell, CheckCircle } from 'lucide-react';
-import { supabase } from '../../services/supabase';
+import { X, Calendar, Clock, Bell, CheckCircle, Sparkles } from 'lucide-react';
+import { auth } from '../../services/firebase';
 import './ScheduleModal.css';
 
 export default function ScheduleModal({ isOpen, onClose, config, existingSchedule, onSuccess }) {
   const { addNotification } = useNotifications();
   const [step, setStep] = useState(1); // 1: Date, 2: Time, 3: Reminders & Summary
-  
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [successData, setSuccessData] = useState(null);
+
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null); // format: "HH:MM" (24h)
   const [reminderPrefs, setReminderPrefs] = useState({ '24h': true, '1h': true, '15m': false });
@@ -20,6 +22,8 @@ export default function ScheduleModal({ isOpen, onClose, config, existingSchedul
 
   useEffect(() => {
     if (isOpen) {
+      setIsSuccess(false);
+      setSuccessData(null);
       if (existingSchedule) {
         const d = new Date(existingSchedule.scheduled_at);
         setSelectedDate(d);
@@ -68,20 +72,31 @@ export default function ScheduleModal({ isOpen, onClose, config, existingSchedul
     };
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      
-      const url = existingSchedule 
+      // Get Firebase ID token from the currently authenticated user
+      const firebaseUser = auth.currentUser;
+
+      console.log('[SCHEDULE] authenticated session:', Boolean(firebaseUser));
+      console.log('[SCHEDULE] access token present:', Boolean(firebaseUser));
+
+      if (!firebaseUser) {
+        throw new Error('No authenticated session. Please log in again.');
+      }
+
+      const token = await firebaseUser.getIdToken();
+      console.log('[SCHEDULE] access token length:', token?.length ?? 0);
+      console.log('[SCHEDULE] sending Authorization header: true');
+
+      const url = existingSchedule
         ? `http://localhost:5000/api/schedules/${existingSchedule.id}`
         : `http://localhost:5000/api/schedules`;
-        
+
       const method = existingSchedule ? 'PUT' : 'POST';
 
       const res = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': token ? `Bearer ${token}` : ''
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(payload)
       });
@@ -96,8 +111,22 @@ export default function ScheduleModal({ isOpen, onClose, config, existingSchedul
         category: 'interviews'
       });
 
+      // Show success popup
+      setSuccessData({
+        type: payload.type,
+        date: scheduledAt.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }),
+        time: scheduledAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+        duration: payload.duration,
+        timezone,
+      });
+      setIsSuccess(true);
+
       if (onSuccess) onSuccess(data.schedule);
-      onClose();
+
+      // Auto-close after 3 seconds
+      setTimeout(() => {
+        onClose();
+      }, 3000);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -105,6 +134,59 @@ export default function ScheduleModal({ isOpen, onClose, config, existingSchedul
     }
   };
 
+  // ─── Success Screen ───────────────────────────────────────────────────────
+  if (isSuccess && successData) {
+    return (
+      <div className="schedule-modal-overlay">
+        <div className="schedule-modal-content schedule-success-modal animate-scale-up">
+          <div className="schedule-success-inner">
+            {/* Animated ring */}
+            <div className="success-ring-wrapper">
+              <svg className="success-ring" viewBox="0 0 100 100">
+                <circle className="success-ring-track" cx="50" cy="50" r="42" />
+                <circle className="success-ring-fill" cx="50" cy="50" r="42" />
+              </svg>
+              <CheckCircle className="success-check-icon" size={40} />
+            </div>
+
+            <div className="success-sparkles">
+              <Sparkles size={18} className="sparkle-1" />
+              <Sparkles size={14} className="sparkle-2" />
+              <Sparkles size={16} className="sparkle-3" />
+            </div>
+
+            <h2 className="success-title">
+              {existingSchedule ? 'Interview Rescheduled!' : 'Interview Scheduled!'}
+            </h2>
+            <p className="success-subtitle">You're all set. Good luck! 🚀</p>
+
+            <div className="success-details-card">
+              <div className="success-detail-row">
+                <Calendar size={16} />
+                <span>{successData.date}</span>
+              </div>
+              <div className="success-detail-row">
+                <Clock size={16} />
+                <span>{successData.time} · {successData.duration} mins</span>
+              </div>
+              <div className="success-detail-row">
+                <Bell size={16} />
+                <span>Reminders enabled</span>
+              </div>
+            </div>
+
+            <p className="success-auto-close">Closing automatically…</p>
+
+            <button className="btn-primary success-done-btn" onClick={onClose}>
+              Done
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Normal Scheduling Flow ───────────────────────────────────────────────
   return (
     <div className="schedule-modal-overlay">
       <div className="schedule-modal-content card-base animate-scale-up">

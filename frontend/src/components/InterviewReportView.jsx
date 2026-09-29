@@ -160,9 +160,35 @@ export default function InterviewReportView({ report, currentUser, interviewConf
                   <div key={idx} className="q-fb-item">
                     <div className="q-fb-header">
                       <strong>Q{idx + 1}: {item.q}</strong>
-                      <span className="q-score-badge">{item.score}/100</span>
+                      <span className={`q-score-badge ${item.score >= 70 ? 'score-good' : item.score >= 40 ? 'score-mid' : 'score-low'}`}>
+                        {item.score}/100
+                      </span>
                     </div>
                     <p className="q-fb-note">{item.note}</p>
+
+                    {/* Answer Comparison */}
+                    {(item.userAnswer || item.idealAnswer) && (
+                      <div className="q-answer-comparison">
+                        {item.userAnswer && (
+                          <div className="q-answer-block answer-user">
+                            <div className="answer-block-label">
+                              <span className="label-dot dot-red" />
+                              What You Said
+                            </div>
+                            <p className="answer-block-text">{item.userAnswer}</p>
+                          </div>
+                        )}
+                        {item.idealAnswer && (
+                          <div className="q-answer-block answer-ideal">
+                            <div className="answer-block-label">
+                              <span className="label-dot dot-green" />
+                              What You Should Have Said
+                            </div>
+                            <p className="answer-block-text">{item.idealAnswer}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
