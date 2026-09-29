@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Award, CheckCircle2, AlertCircle } from 'lucide-react';
 
+import API_BASE_URL from '../../config/api';
+
 export default function MyMockInterviews({ currentUser, onNavigate }) {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -14,7 +16,7 @@ export default function MyMockInterviews({ currentUser, onNavigate }) {
         
         // Pass userId in query if token auth isn't fully set up for students
         const userId = currentUser?.id || 1; 
-        const response = await fetch(`http://localhost:5000/api/interviews/history?userId=${userId}`, {
+        const response = await fetch(`${API_BASE_URL}/api/interviews/history?userId=${userId}`, {
           headers
         });
         

@@ -14,6 +14,8 @@ import WebScannerCard from '../components/WebScannerCard';
 import SystemDiagnosticsModal from '../components/SystemDiagnosticsModal';
 import './InternshipsPage.css';
 
+import API_BASE_URL from '../config/api';
+
 export default function InternshipsPage({ currentUser, onNavigate }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [stipendFilter, setStipendFilter] = useState('all');
@@ -26,7 +28,7 @@ export default function InternshipsPage({ currentUser, onNavigate }) {
   const fetchInternships = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`http://localhost:5000/api/jobs?category=internship&query=${encodeURIComponent(searchQuery)}`, { cache: 'no-store' });
+      const res = await fetch(`${API_BASE_URL}/api/jobs?category=internship&query=${encodeURIComponent(searchQuery)}`, { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         setInternshipsCatalog(data.jobs || []);

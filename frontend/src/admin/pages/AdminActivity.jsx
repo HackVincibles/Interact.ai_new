@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import API_BASE_URL from '../../config/api';
+
 export default function AdminActivity() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
-    fetch('http://localhost:5000/api/admin/activity', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('interact_admin_token') }})
+    fetch(`${API_BASE_URL}/api/admin/activity`, { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('interact_admin_token') }})
       .then(r => r.json()).then(d => { setData(d.data); setLoading(false); });
   }, []);
   if (loading) return <div>Loading...</div>;

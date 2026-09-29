@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Edit2, XCircle, AlertCircle } from 'lucide-react';
 import ScheduleModal from '../scheduling/ScheduleModal';
 import { useNotifications } from '../../context/NotificationContext';
+import API_BASE_URL from '../../config/api';
 
 export default function MySchedules({ currentUser }) {
   const [schedules, setSchedules] = useState([]);
@@ -16,7 +17,7 @@ export default function MySchedules({ currentUser }) {
     try {
       setLoading(true);
       const token = localStorage.getItem('interact_token');
-      const response = await fetch(`http://localhost:5000/api/schedules`, {
+      const response = await fetch(`${API_BASE_URL}/api/schedules`, {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
       
@@ -43,7 +44,7 @@ export default function MySchedules({ currentUser }) {
     
     try {
       const token = localStorage.getItem('interact_token');
-      const response = await fetch(`http://localhost:5000/api/schedules/${id}/cancel`, {
+      const response = await fetch(`${API_BASE_URL}/api/schedules/${id}/cancel`, {
         method: 'PUT',
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });

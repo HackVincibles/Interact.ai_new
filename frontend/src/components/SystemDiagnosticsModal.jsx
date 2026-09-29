@@ -13,6 +13,7 @@ import {
   RefreshCw,
   Server
 } from 'lucide-react';
+import API_BASE_URL from '../config/api';
 import './SystemDiagnosticsModal.css';
 
 export default function SystemDiagnosticsModal({ isOpen, onClose }) {
@@ -24,7 +25,7 @@ export default function SystemDiagnosticsModal({ isOpen, onClose }) {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch('http://localhost:5000/api/jobs/health');
+      const res = await fetch(`${API_BASE_URL}/api/jobs/health`);
       if (res.ok) {
         const data = await res.json();
         setHealthData(data);

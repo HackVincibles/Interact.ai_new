@@ -17,6 +17,8 @@ import WebScannerCard from '../components/WebScannerCard';
 import SystemDiagnosticsModal from '../components/SystemDiagnosticsModal';
 import './JobsPage.css';
 
+import API_BASE_URL from '../config/api';
+
 export default function JobsPage({ currentUser, onNavigate }) {
   const [selectedCategory, setSelectedCategory] = useState('job');
   const [searchQuery, setSearchQuery] = useState('');
@@ -30,7 +32,7 @@ export default function JobsPage({ currentUser, onNavigate }) {
   const fetchJobsData = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`http://localhost:5000/api/jobs?category=${selectedCategory}&query=${encodeURIComponent(searchQuery)}`, { cache: 'no-store' });
+      const res = await fetch(`${API_BASE_URL}/api/jobs?category=${selectedCategory}&query=${encodeURIComponent(searchQuery)}`, { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         setJobsCatalog(data.jobs || []);
@@ -52,7 +54,7 @@ export default function JobsPage({ currentUser, onNavigate }) {
   useEffect(() => {
     async function loadFundingRadar() {
       try {
-        const res = await fetch('http://localhost:5000/api/jobs/funding-radar');
+        const res = await fetch(`${API_BASE_URL}/api/jobs/funding-radar`);
         if (res.ok) {
           const data = await res.json();
           if (data.fundingRadar && data.fundingRadar.length > 0) {

@@ -19,6 +19,7 @@ import {
   Layers
 } from 'lucide-react';
 import { generateGeminiResponse } from '../services/gemini';
+import API_BASE_URL from '../config/api';
 import './ResumeStudioPage.css';
 
 export default function ResumeStudioPage({ currentUser, onNavigate }) {
@@ -198,7 +199,7 @@ export default function ResumeStudioPage({ currentUser, onNavigate }) {
       setIsScanning(true);
       performRealtimeJDKeywordScan(content, jobDescription);
 
-      const res = await fetch('http://localhost:5000/api/resume/scan', {
+      const res = await fetch(`${API_BASE_URL}/api/resume/scan`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

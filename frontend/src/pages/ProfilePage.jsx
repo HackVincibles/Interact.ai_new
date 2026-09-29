@@ -30,6 +30,7 @@ import {
   Calendar
 } from 'lucide-react';
 import './ProfilePage.css';
+import API_BASE_URL from '../config/api';
 import MyRoadmap from '../components/profile/MyRoadmap';
 import MyCourses from '../components/profile/MyCourses';
 import MyInternships from '../components/profile/MyInternships';
@@ -222,7 +223,7 @@ export default function ProfilePage({ currentUser, onNavigate }) {
     try {
       const token = localStorage.getItem('interact_token');
       if (token) {
-        await fetch('http://localhost:5000/api/users/avatar', {
+        await fetch(`${API_BASE_URL}/api/users/avatar`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

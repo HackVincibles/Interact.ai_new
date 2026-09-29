@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import '../AdminApp.css';
+import API_BASE_URL from '../../config/api';
 
 export default function AdminAnnouncements() {
   const [data, setData] = useState([]);
@@ -12,7 +13,7 @@ export default function AdminAnnouncements() {
   const fetchData = async () => {
     try {
       const token = localStorage.getItem('interact_admin_token');
-      const res = await fetch('http://localhost:5000/api/admin/announcements', {
+      const res = await fetch(`${API_BASE_URL}/api/admin/announcements`, {
         headers: { 'Authorization': 'Bearer ' + token }
       });
       const json = await res.json();
@@ -29,7 +30,7 @@ export default function AdminAnnouncements() {
     if (!window.confirm('Delete this item? This action cannot be undone.')) return;
     try {
       const token = localStorage.getItem('interact_admin_token');
-      await fetch('http://localhost:5000/api/admin/announcements/' + id, {
+      await fetch(`${API_BASE_URL}/api/admin/announcements/` + id, {
         method: 'DELETE',
         headers: { 'Authorization': 'Bearer ' + token }
       });

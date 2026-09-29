@@ -6,6 +6,7 @@ import ScheduleSummary from './ScheduleSummary';
 import { useNotifications } from '../../context/NotificationContext';
 import { X, Calendar, Clock, Bell, CheckCircle, Sparkles } from 'lucide-react';
 import { auth } from '../../services/firebase';
+import API_BASE_URL from '../../config/api';
 import './ScheduleModal.css';
 
 export default function ScheduleModal({ isOpen, onClose, config, existingSchedule, onSuccess }) {
@@ -83,8 +84,8 @@ export default function ScheduleModal({ isOpen, onClose, config, existingSchedul
       }
 
       const url = existingSchedule
-        ? `http://localhost:5000/api/schedules/${existingSchedule.id}`
-        : `http://localhost:5000/api/schedules`;
+        ? `${API_BASE_URL}/api/schedules/${existingSchedule.id}`
+        : `${API_BASE_URL}/api/schedules`;
 
       const method = existingSchedule ? 'PUT' : 'POST';
 

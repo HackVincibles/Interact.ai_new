@@ -12,7 +12,7 @@ import {
   User,
   Star
 } from 'lucide-react';
-import './GamifiedLeaderboard.css';
+import API_BASE_URL from '../config/api';
 
 export default function GamifiedLeaderboard({ currentUser, onSelectUserProfile }) {
   const [activeTab, setActiveTab] = useState('all-time'); // 'weekly' or 'all-time'
@@ -34,7 +34,7 @@ export default function GamifiedLeaderboard({ currentUser, onSelectUserProfile }
       try {
         setLoading(true);
         // Defaulting to all-time database ranking for now
-        const res = await fetch(`http://localhost:5000/api/leaderboard?type=global`);
+        const res = await fetch(`${API_BASE_URL}/api/leaderboard?type=global`);
         if (res.ok) {
           const data = await res.json();
           // Assuming backend returns points as string like '5,240'

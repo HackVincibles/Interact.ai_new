@@ -8,7 +8,7 @@ import GDOnboardingModal from '../components/GDOnboardingModal';
 import RoundLoadingOverlay from '../components/RoundLoadingOverlay';
 import { Award, ShieldCheck, Sparkles, Video, Play, ArrowRight, Brain, Code, Briefcase, Users, LayoutDashboard } from 'lucide-react';
 import { useNotifications } from '../context/NotificationContext';
-import './MockInterviewPage.css';
+import API_BASE_URL from '../config/api';
 
 export default function MockInterviewPage({ currentUser, onNavigate, onInterviewStateChange }) {
   const [stage, setStage] = useState('setup'); // 'setup', 'lobby', 'studio', 'report', 'gd-setup', 'gd-room'
@@ -106,7 +106,7 @@ export default function MockInterviewPage({ currentUser, onNavigate, onInterview
         window.history.replaceState({}, document.title, window.location.pathname);
         setStage('gd-room');
       } else {
-        fetch('http://localhost:5000/api/interview/history?userId=' + (currentUser?.id || 1))
+        fetch(`${API_BASE_URL}/api/interview/history?userId=` + (currentUser?.id || 1))
           .then(res => res.json())
           .then(data => {
             if (data.success) {
@@ -131,7 +131,7 @@ export default function MockInterviewPage({ currentUser, onNavigate, onInterview
     setIsInitializingRound(true);
     setInitializationError(false);
     try {
-      const res = await fetch('http://localhost:5000/api/interview/start', {
+      const res = await fetch(`${API_BASE_URL}/api/interview/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -185,7 +185,7 @@ export default function MockInterviewPage({ currentUser, onNavigate, onInterview
 
     // Try fetching Report from backend
     try {
-      const res = await fetch('http://localhost:5000/api/interview/report', {
+      const res = await fetch(`${API_BASE_URL}/api/interview/report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -253,7 +253,7 @@ export default function MockInterviewPage({ currentUser, onNavigate, onInterview
     try {
       const token = localStorage.getItem('interact_token');
       if (token && (currentSessionId || typeof sessionId !== 'undefined')) {
-         await fetch('http://localhost:5000/api/certificates/issue/interview', {
+         await fetch(`${API_BASE_URL}/api/certificates/issue/interview`, {
             method: 'POST',
             headers: { 
               'Content-Type': 'application/json',

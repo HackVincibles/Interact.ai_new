@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldCheck, Award, Calendar, CheckCircle2, AlertCircle, Download } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import './VerifyCertificatePage.css';
+import API_BASE_URL from '../config/api';
 
 export default function VerifyCertificatePage({ verificationId, onNavigate }) {
   const [loading, setLoading] = useState(true);
@@ -11,7 +11,7 @@ export default function VerifyCertificatePage({ verificationId, onNavigate }) {
   useEffect(() => {
     const verify = async () => {
       try {
-        const res = await fetch(`http://localhost:5000/api/certificates/verify/${verificationId}`);
+        const res = await fetch(`${API_BASE_URL}/api/certificates/verify/${verificationId}`);
         const data = await res.json();
         
         if (res.ok && data.success) {

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Trophy, Medal, Search, Filter, Globe, Building, Award, X, ExternalLink, Sparkles } from 'lucide-react';
+import API_BASE_URL from '../config/api';
 import './LeaderboardModal.css';
 
 export default function LeaderboardModal({ isOpen, onClose, currentUser, onSelectUserProfile }) {
@@ -13,7 +14,7 @@ export default function LeaderboardModal({ isOpen, onClose, currentUser, onSelec
     async function fetchLeaderboard() {
       try {
         setLoading(true);
-        const res = await fetch(`http://localhost:5000/api/leaderboard?type=${activeTab}`);
+        const res = await fetch(`${API_BASE_URL}/api/leaderboard?type=${activeTab}`);
         if (res.ok) {
           const data = await res.json();
           setLeaderboardList(data.leaderboard || []);

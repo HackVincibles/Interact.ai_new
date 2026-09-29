@@ -13,6 +13,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { useNotifications } from '../context/NotificationContext';
+import API_BASE_URL from '../config/api';
 import './WebScannerCard.css';
 
 export default function WebScannerCard({ 
@@ -31,7 +32,7 @@ export default function WebScannerCard({
       setIsScanning(true);
       setLogs((prev) => [`[${new Date().toLocaleTimeString()}] Triggering TinyFish & Firecrawl web scanner...`, ...prev]);
 
-      const res = await fetch('http://localhost:5000/api/jobs/scan', {
+      const res = await fetch(`${API_BASE_URL}/api/jobs/scan`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

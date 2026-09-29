@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import API_BASE_URL from '../../config/api';
 
 export default function AdminDashboard() {
   const [metrics, setMetrics] = useState(null);
@@ -9,7 +10,7 @@ export default function AdminDashboard() {
     const fetchMetrics = async () => {
       try {
         const token = localStorage.getItem('interact_admin_token');
-        const res = await fetch('http://localhost:5000/api/admin/dashboard-metrics', {
+        const res = await fetch(`${API_BASE_URL}/api/admin/dashboard-metrics`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }

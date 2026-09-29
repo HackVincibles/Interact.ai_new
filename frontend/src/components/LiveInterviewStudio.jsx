@@ -5,6 +5,7 @@ import {
   Settings, ChevronRight, ShieldCheck, Lightbulb, PhoneOff, Terminal, 
   Sparkles, GripVertical, Send, RefreshCw, AlertTriangle
 } from 'lucide-react';
+import API_BASE_URL from '../config/api';
 import './LiveInterviewStudio.css';
 
 export default function LiveInterviewStudio({ initialStream, interviewConfig, onFinishInterview }) {
@@ -291,7 +292,7 @@ export default function LiveInterviewStudio({ initialStream, interviewConfig, on
     setCandidateAnswer('');
 
     try {
-      const res = await fetch('http://localhost:5000/api/interview/next-question', {
+      const res = await fetch(`${API_BASE_URL}/api/interview/next-question`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

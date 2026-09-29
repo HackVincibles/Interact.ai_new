@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldCheck, Award, Download, Share2 } from 'lucide-react';
 
+import API_BASE_URL from '../../config/api';
+
 export default function MyCertificates({ currentUser }) {
   const [certificates, setCertificates] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -10,7 +12,7 @@ export default function MyCertificates({ currentUser }) {
       try {
         const token = localStorage.getItem('interact_token');
         if (token) {
-          const res = await fetch('http://localhost:5000/api/certificates/me', {
+          const res = await fetch(`${API_BASE_URL}/api/certificates/me`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
