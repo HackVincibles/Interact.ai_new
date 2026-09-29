@@ -42,6 +42,18 @@ export const submitAnswer = async (req, res, next) => {
   }
 };
 
+export const getNextAdaptiveQuestion = async (req, res, next) => {
+  try {
+    const result = await LangGraphInterviewService.generateNextAdaptiveQuestion(req.body);
+    res.json({
+      success: true,
+      ...result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getReport = async (req, res, next) => {
   try {
     const result = await LangGraphInterviewService.generateFinalReport(req.body);

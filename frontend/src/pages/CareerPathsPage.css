@@ -2,12 +2,13 @@
 
 .career-paths-root {
   min-height: 100vh;
+  padding-top: 0;
   padding-bottom: 90px;
 }
 
 /* Hero Section */
 .career-hero-banner {
-  padding: 60px 0 35px 0;
+  padding: 16px 0 20px 0;
   background: radial-gradient(circle at 50% 0%, rgba(99, 91, 255, 0.08) 0%, rgba(248, 249, 254, 0) 70%);
 }
 
@@ -580,16 +581,15 @@
   gap: 8px;
 }
 
-/* AI Counselor Modal */
 .counselor-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(6px);
-  z-index: 1000;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(10px);
+  z-index: 99999;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -598,16 +598,18 @@
 
 .counselor-modal-card {
   width: 100%;
-  max-width: 620px;
-  background: var(--bg-modal);
+  max-width: 640px;
+  background: var(--card-bg-white);
   color: var(--text-main);
   border: 1px solid var(--border-purple);
   border-radius: var(--radius-lg);
-  padding: 36px;
+  padding: 32px;
   position: relative;
-  max-height: 90vh;
+  max-height: 85vh;
   overflow-y: auto;
-  box-shadow: var(--shadow-card-hover);
+  overscroll-behavior: contain;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+  z-index: 100000;
 }
 
 .modal-close-btn {

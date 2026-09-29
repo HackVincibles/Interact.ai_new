@@ -213,6 +213,12 @@ export default function GamifiedLeaderboard({ currentUser, onSelectUserProfile }
             <h2 className="progress-name">{myRank.name}</h2>
             <div className="progress-rank-highlight">Rank #{myRank.rank}</div>
             
+            {(!currentUser?.collegeName || currentUser?.collegeRank === 'Unranked' || currentUser?.globalRank === 'Unranked' || myRank.rank === 'Unranked') && (
+              <p className="unranked-notice-text" style={{ color: '#f87171', fontSize: '0.85rem', textAlign: 'center', margin: '10px 0', fontWeight: '500' }}>
+                fill college details and complete profile to get ranked.
+              </p>
+            )}
+            
             <div className="progress-xp-total">
               <Sparkles size={18} className="gold-sparkle" />
               <span><strong>{myRank.points}</strong> Total XP</span>

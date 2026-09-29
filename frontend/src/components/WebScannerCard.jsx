@@ -63,10 +63,10 @@ export default function WebScannerCard({
             });
           }
 
-          // Pass each job up, or trigger a full refresh. For simplicity since handleScanNewItem expects one job or we can just trigger full refresh
-          onScanComplete(); 
+          // Pass newly scanned items up to parent page to append to card grid
+          onScanComplete(data.scannedJobs); 
         } else if (onScanComplete) {
-          onScanComplete(); 
+          onScanComplete([]); 
         }
       }
     } catch (err) {

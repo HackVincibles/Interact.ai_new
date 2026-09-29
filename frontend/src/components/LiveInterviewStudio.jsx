@@ -95,95 +95,99 @@ export default function LiveInterviewStudio({ initialStream, interviewConfig, on
     }
   }, [initialStream, currentRound]);
 
-  // 2. Timer Interval
-  useEffect(() => {
-    const timerInterval = setInterval(() => {
-      setElapsedSeconds((prev) => prev + 1);
-    }, 1000);
-    return () => clearInterval(timerInterval);
-  }, []);
-
-  // 3. Vapi Initialization
-  useEffect(() => {
-    if (isAptitude) return;
-
-    const VapiClass = Vapi.default || Vapi;
-    const vapi = new VapiClass(import.meta.env.VITE_VAPI_PUBLIC_KEY || 'mock-vapi-key');
-    vapiRef.current = vapi;
-
-    vapi.on('call-start', () => {
-      setCallStatus('active');
-    });
-
-    vapi.on('call-end', () => {
-      setCallStatus('inactive');
-    });
-
-    vapi.on('speech-start', () => setIsAiSpeaking(true));
-    vapi.on('speech-end', () => setIsAiSpeaking(false));
-
-    vapi.on('message', (message) => {
-      if (message.type === 'transcript' && message.transcriptType === 'final') {
-        const text = message.transcript;
-        const sender = message.role === 'assistant' ? 'interviewer' : 'candidate';
-        const m = Math.floor(elapsedRef.current / 60).toString().padStart(2, '0');
-        const s = (elapsedRef.current % 60).toString().padStart(2, '0');
-        setTranscript(prev => [...prev, { sender, text, time: `${m}:${s}` }]);
-      }
-    });
-
-    vapi.on('error', (e) => {
-      console.error('Vapi Error:', e);
-      setCallStatus('inactive');
-    });
-
-    return () => {
-      if (vapi) {
-        vapi.removeAllListeners();
-        vapi.stop();
-      }
-    };
-  }, [isAptitude]);
+  const totalDurationSeconds = (parseInt(interviewConfig?.duration || '30', 10)) * 60;
 
   const formatTime = (secs) => {
-    const m = Math.floor(secs / 60).toString().padStart(2, '0');
-    const s = (secs % 60).toString().padStart(2, '0');
+    const m = Math.floor((secs || 0) / 60).toString().padStart(2, '0');
+    const s = ((secs || 0) % 60).toString().padStart(2, '0');
     return `${m}:${s}`;
   };
 
-  const toggleVapiCall = () => {
-    if (callStatus === 'active' || callStatus === 'loading') {
-      setCallStatus('loading');
-      vapiRef.current?.stop();
-    } else {
-      setCallStatus('loading');
-      const assistantId = import.meta.env.VITE_VAPI_ASSISTANT_ID || 'mock-assistant-id';
-      vapiRef.current?.start(assistantId);
+  // Speak AI message using SpeechSynthesis
+  const speakAiText = (text) => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+      window.speechSynthesis.speak(utterance);
     }
   };
 
-  const handleNextRound = () => {
-    if (currentRound === 'Aptitude') {
-      setCurrentRound('HR');
-      setCurrentQuestionNumber(1);
-    } else if (currentRound === 'HR') {
-      setCurrentRound('Technical');
-      setCurrentQuestionNumber(1);
-    } else if (currentRound === 'Technical') {
-      setCurrentRound('Coding');
-      setCurrentQuestionNumber(1);
-    }
+  // Timer Interval with automatic duration wrapup
+  useEffect(() => {
+    const timerInterval = setInterval(() => {
+      setElapsedSeconds((prev) => {
+        const nextSec = prev + 1;
+        if (nextSec >= totalDurationSeconds) {
+          clearInterval(timerInterval);
+          handleTimeExpiredWrapup();
+        }
+        return nextSec;
+      });
+    }, 1000);
+    return () => clearInterval(timerInterval);
+  }, [totalDurationSeconds]);
+
+  const handleTimeExpiredWrapup = async () => {
+    const wrapupMsg = "The time is over. Thank you for this wonderful conversation! You can see your comprehensive interview report after the interview ends.";
+    speakAiText(wrapupMsg);
+    setTranscript(prev => [...prev, { sender: 'interviewer', text: wrapupMsg, time: formatTime(elapsedRef.current) }]);
+    setTimeout(() => {
+      onFinishInterview({ elapsedSeconds: elapsedRef.current, transcript });
+    }, 3500);
   };
 
-  const handleNextQuestion = () => {
-    if (currentQuestionNumber >= 3) {
-      if (isSequential && currentRound !== 'Coding') {
-        handleNextRound();
+  const handleNextQuestion = async () => {
+    if (isSubmitting) return;
+    try {
+      setIsSubmitting(true);
+      const m = Math.floor(elapsedRef.current / 60).toString().padStart(2, '0');
+      const s = (elapsedRef.current % 60).toString().padStart(2, '0');
+      const curTime = `${m}:${s}`;
+
+      const answerToSubmit = candidateAnswer.trim() || 'I have completed my answer for this question.';
+      setTranscript(prev => [...prev, { sender: 'candidate', text: answerToSubmit, time: curTime }]);
+      setCandidateAnswer('');
+
+      const isTimeOver = elapsedRef.current >= totalDurationSeconds;
+
+      const res = await fetch('http://localhost:5000/api/interview/next-question', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          candidateAnswer: answerToSubmit,
+          transcriptHistory: transcript,
+          interviewConfig: interviewConfig || {},
+          isTimeOver
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const aiResponse = data.aiMessage || 'Thank you. Let us proceed to the next technical topic.';
+        setCurrentQuestionText(data.nextQuestion || aiResponse);
+        setTranscript(prev => [...prev, { sender: 'interviewer', text: aiResponse, time: curTime }]);
+        speakAiText(aiResponse);
+
+        if (data.isComplete || isTimeOver) {
+          setTimeout(() => {
+            onFinishInterview({ elapsedSeconds: elapsedRef.current, transcript });
+          }, 3000);
+          return;
+        }
       } else {
-        onFinishInterview({ elapsedSeconds, transcript });
+        const fallbackMsg = "Thank you. Could you now explain how you optimize data structure space complexity under memory constraints?";
+        setCurrentQuestionText(fallbackMsg);
+        setTranscript(prev => [...prev, { sender: 'interviewer', text: fallbackMsg, time: curTime }]);
+        speakAiText(fallbackMsg);
       }
-    } else {
+
       setCurrentQuestionNumber(prev => prev + 1);
+    } catch (err) {
+      console.warn('Error fetching next adaptive AI question:', err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -356,7 +360,7 @@ export default function LiveInterviewStudio({ initialStream, interviewConfig, on
               onClick={toggleVapiCall}
               disabled={callStatus === 'loading'}
             >
-              {callStatus === 'loading' ? 'Connecting...' : (callStatus === 'active' ? 'Stop AI Voice' : 'Start Interview (Vapi)')}
+              {callStatus === 'loading' ? 'Connecting...' : (callStatus === 'active' ? 'Stop AI Voice' : 'Start Interview')}
             </button>
             <button className="control-btn" onClick={handleNextQuestion}>Next Question</button>
           </div>

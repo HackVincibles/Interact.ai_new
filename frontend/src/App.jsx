@@ -40,6 +40,7 @@ export default function App() {
 
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
+  const [isAdminLoginActive, setIsAdminLoginActive] = useState(false);
 
   // Student Profile: null when unauthenticated
   const [studentProfile, setStudentProfile] = useState(() => {
@@ -75,35 +76,46 @@ export default function App() {
   }, [isLoggedIn, userRole, studentProfile]);
 
   useEffect(() => {
-    const path = window.location.pathname;
+    const path = window.location.pathname.replace(/^\//, '').toLowerCase();
     const searchParams = new URLSearchParams(window.location.search);
     
-    if (path.startsWith('/verify/')) {
-      const vid = path.split('/verify/')[1];
+    if (window.location.pathname.startsWith('/verify/')) {
+      const vid = window.location.pathname.split('/verify/')[1];
       if (vid) {
         setVerificationIdToVerify(vid);
         setActiveTab('verify');
       }
     } else if (searchParams.has('gd_join')) {
       setActiveTab('mock-interviews');
+    } else if (['courses', 'career-paths', 'internships', 'jobs', 'resources', 'resume-studio', 'mock-interviews', 'leaderboard', 'profile'].includes(path)) {
+      setActiveTab(path);
     }
   }, []);
 
-  // Firebase Auth listener - proven working with Google OAuth
+  // Auth state listener - preserves login session across refresh & reopen until explicit manual logout
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       console.log('[AUTH] event: onAuthStateChanged');
-      console.log('[AUTH] has user:', !!user);
+      const isManuallyLoggedOut = localStorage.getItem('interact_manually_logged_out') === 'true';
+      const isSavedLoggedIn = localStorage.getItem('interact_is_logged_in') === 'true';
+
+      if (isManuallyLoggedOut) {
+        console.log('[AUTH] User manually logged out. Clearing local session.');
+        localStorage.removeItem('interact_is_logged_in');
+        localStorage.removeItem('interact_user_profile');
+        localStorage.removeItem('interact_user_role');
+        setIsLoggedIn(false);
+        setStudentProfile(null);
+        return;
+      }
 
       if (user) {
         const email = user.email || '';
         const fullName = user.displayName || email.split('@')[0] || 'Google Candidate';
-        console.log('[AUTH] provider:', user.providerData?.[0]?.providerId || 'unknown');
-        console.log('[AUTH] app status: AUTHENTICATED');
 
-        setStudentProfile(prev => {
+        setStudentProfile((prev) => {
           if (prev && prev.email === email) return prev;
-          return {
+          return prev || {
             fullName,
             email,
             collegeName: '',
@@ -113,16 +125,14 @@ export default function App() {
             cgpa: '',
           };
         });
-        setUserRole('student');
         setIsLoggedIn(true);
         localStorage.setItem('interact_is_logged_in', 'true');
+      } else if (isSavedLoggedIn) {
+        // Keep candidate/admin logged in across refresh
+        console.log('[AUTH] Preserving active session across refresh.');
+        setIsLoggedIn(true);
       } else {
-        console.log('[AUTH] app status: UNAUTHENTICATED');
-        localStorage.removeItem('interact_is_logged_in');
-        localStorage.removeItem('interact_user_profile');
-        localStorage.removeItem('interact_user_role');
         setIsLoggedIn(false);
-        setStudentProfile(null);
       }
     });
 
@@ -135,6 +145,7 @@ export default function App() {
   };
 
   const handleRegisterSuccess = (profileData) => {
+    localStorage.removeItem('interact_manually_logged_out');
     const newProfile = {
       fullName: profileData.fullName || profileData.email?.split('@')[0] || 'Registered Student',
       email: profileData.email || '',
@@ -151,6 +162,7 @@ export default function App() {
   };
 
   const handleLoginSuccess = (userData) => {
+    localStorage.removeItem('interact_manually_logged_out');
     if (userData.role === 'admin' || userData.isAdmin) {
       setUserRole('admin');
       setIsLoggedIn(true);
@@ -186,13 +198,19 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    setUserRole('student');
-    setStudentProfile(null);
+  const handleLogout = async () => {
+    try {
+      await firebaseLogOut();
+    } catch (e) {
+      console.warn('Firebase logout notice:', e);
+    }
+    localStorage.setItem('interact_manually_logged_out', 'true');
     localStorage.removeItem('interact_is_logged_in');
     localStorage.removeItem('interact_user_role');
     localStorage.removeItem('interact_user_profile');
+    setIsLoggedIn(false);
+    setUserRole('student');
+    setStudentProfile(null);
     setActiveTab('home');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -228,8 +246,12 @@ export default function App() {
         {/* Full Page Login View */}
         {activeTab === 'login' && (
           <LoginPage 
-            onNavigate={handleTabChange}
+            onNavigate={(tab) => {
+              setIsAdminLoginActive(false);
+              handleTabChange(tab);
+            }}
             onLoginSuccess={handleLoginSuccess}
+            initialAdminMode={isAdminLoginActive}
           />
         )}
 
@@ -253,9 +275,9 @@ export default function App() {
            <VerifyCertificatePage verificationId={verificationIdToVerify} onNavigate={handleTabChange} />
         )}
 
-        {/* Public Modules */}
-        {activeTab === 'career-paths' && <CareerPathsPage onNavigate={handleTabChange} />}
-        {activeTab === 'courses' && <CoursesPage onNavigate={handleTabChange} />}
+        {/* Public & Personalized Modules */}
+        {activeTab === 'career-paths' && <CareerPathsPage currentUser={studentProfile} isLoggedIn={isLoggedIn} onNavigate={handleTabChange} />}
+        {activeTab === 'courses' && <CoursesPage currentUser={studentProfile} isLoggedIn={isLoggedIn} onNavigate={handleTabChange} />}
 
         {/* Protected Feature: Gamified Leaderboard */}
         {activeTab === 'leaderboard' && (
@@ -355,8 +377,14 @@ export default function App() {
       {/* Footer (Hidden on dedicated full-page auth screens and active interviews) */}
       {activeTab !== 'register' && activeTab !== 'login' && !isInterviewActive && (
         <Footer 
-          onTabChange={handleTabChange} 
-          onAdminLoginClick={() => handleTabChange('login')}
+          onTabChange={(tab) => {
+            setIsAdminLoginActive(false);
+            handleTabChange(tab);
+          }} 
+          onAdminLoginClick={() => {
+            setIsAdminLoginActive(true);
+            handleTabChange('login');
+          }}
         />
       )}
 

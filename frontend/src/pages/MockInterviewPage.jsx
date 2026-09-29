@@ -16,11 +16,58 @@ export default function MockInterviewPage({ currentUser, onNavigate, onInterview
   const { addNotification } = useNotifications();
   const [interviewConfig, setInterviewConfig] = useState({
     type: 'Technical SDE-1',
-    duration: '30',
+    duration: '30', // '15', '30', '45', '60'
+    mode: 'role_jd', // 'resume', 'role_jd', 'hr', 'cs_core'
     targetRole: 'Software Development Engineer',
-    practiceMode: 'full', // 'full' or 'targeted'
-    roundType: null, // 'Aptitude', 'Technical', 'Coding', 'HR', 'GD'
+    jobDescription: 'Proficiency in Data Structures, React.js, Node.js, and SQL Database management.',
+    resumeText: currentUser?.resumeText || '',
+    resumeName: currentUser?.resumeName || '',
+    difficulty: 'Medium', // 'Easy', 'Medium', 'FAANG Level (Hard)'
+    practiceMode: 'full',
+    roundType: null,
   });
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const rawText = event.target.result || '';
+      const cleanText = typeof rawText === 'string' 
+        ? rawText.replace(/[^\x20-\x7E\n\r\t]/g, ' ').replace(/\s+/g, ' ') 
+        : file.name;
+      setInterviewConfig(prev => ({
+        ...prev,
+        resumeName: file.name,
+        resumeText: cleanText,
+        mode: 'resume'
+      }));
+    };
+    reader.readAsText(file);
+  };
+
+  const handleLaunchFullInterview = () => {
+    setSelectionWarning(false);
+    setStage('lobby');
+  };
+
+  const handleLaunchTargetedPractice = (roundType) => {
+    if (!roundType) {
+      setSelectionWarning(true);
+      return;
+    }
+    setSelectionWarning(false);
+    setInterviewConfig(prev => ({
+      ...prev,
+      practiceMode: 'targeted',
+      roundType: roundType
+    }));
+    if (roundType === 'GD') {
+      setShowGDOnboarding(true);
+    } else {
+      setStage('lobby');
+    }
+  };
 
   const [activeMediaStream, setActiveMediaStream] = useState(null);
   const [reportData, setReportData] = useState(null);
@@ -30,6 +77,13 @@ export default function MockInterviewPage({ currentUser, onNavigate, onInterview
   const [isInitializingRound, setIsInitializingRound] = useState(false);
   const [initializationError, setInitializationError] = useState(false);
   const [retryAction, setRetryAction] = useState(null);
+  const [selectionWarning, setSelectionWarning] = useState(false);
+
+  useEffect(() => {
+    if (stage !== 'studio' && document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    }
+  }, [stage]);
 
   useEffect(() => {
     if (onInterviewStateChange) {
@@ -73,32 +127,6 @@ export default function MockInterviewPage({ currentUser, onNavigate, onInterview
     };
   }, [onInterviewStateChange]);
 
-  const handleLaunchFullInterview = () => {
-    setInterviewConfig({
-      type: 'Technical SDE-1',
-      duration: '30',
-      targetRole: 'Software Development Engineer',
-      practiceMode: 'full',
-      roundType: null
-    });
-    setStage('lobby');
-  };
-
-  const handleLaunchTargetedPractice = (roundType) => {
-    setInterviewConfig({
-      type: 'Targeted Practice',
-      duration: '15',
-      targetRole: 'Student',
-      practiceMode: 'targeted',
-      roundType: roundType
-    });
-    if (roundType === 'GD') {
-      setShowGDOnboarding(true);
-    } else {
-      setStage('lobby');
-    }
-  };
-
   const initializeRound = async (onSuccessCallback) => {
     setIsInitializingRound(true);
     setInitializationError(false);
@@ -128,6 +156,9 @@ export default function MockInterviewPage({ currentUser, onNavigate, onInterview
   const handleStartInterviewFromLobby = async ({ stream }) => {
     setActiveMediaStream(stream);
     initializeRound(() => {
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
       setStage('studio');
     });
   };
@@ -216,24 +247,194 @@ export default function MockInterviewPage({ currentUser, onNavigate, onInterview
             </p>
           </div>
 
-          <div className="card-base setup-card full-interview-card" style={{ padding: '30px', margin: '0 auto 30px', cursor: 'pointer' }} onClick={handleLaunchFullInterview}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <h3 style={{ fontSize: '1.3rem', margin: '0 0 8px 0' }}>Complete Mock Interview</h3>
-                <p style={{ color: 'var(--text-muted)', margin: 0 }}>Experience a complete, end-to-end interview process across all areas.</p>
-              </div>
-              <button className="btn-primary-purple" style={{ padding: '12px 24px', borderRadius: '30px' }}>
-                Start Full Interview
-              </button>
+          {/* Comprehensive AI Interview Customization Control Panel */}
+          <div className="card-base setup-card" style={{ padding: '30px', margin: '0 auto 35px', borderRadius: '16px', background: 'var(--card-bg-white)', border: '1px solid var(--border-purple)' }}>
+            <div style={{ marginBottom: '20px', borderBottom: '1px solid var(--border-light)', paddingBottom: '12px' }}>
+              <span className="section-label" style={{ background: 'rgba(99,91,255,0.1)', color: 'var(--primary-purple)', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '700' }}>
+                AI INTERVIEW CONFIGURATOR
+              </span>
+              <h2 style={{ fontSize: '1.4rem', fontWeight: '800', margin: '8px 0 4px 0', color: 'var(--text-main)' }}>
+                Customize Your Live AI Interview Session
+              </h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>
+                Set duration, interview basis (Resume, Role & JD, HR, CS Core), and universal difficulty level.
+              </p>
             </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', marginBottom: '24px' }}>
+              
+              {/* 1. Duration Selection (Mandatory: 15, 30, 45, 60 min) */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.88rem', fontWeight: '700', marginBottom: '8px', color: 'var(--text-main)' }}>
+                  ⏱️ 1. Interview Duration (Mandatory)
+                </label>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {['15', '30', '45', '60'].map((mins) => (
+                    <button
+                      key={mins}
+                      type="button"
+                      onClick={() => setInterviewConfig(prev => ({ ...prev, duration: mins }))}
+                      style={{
+                        flex: 1,
+                        minWidth: '60px',
+                        padding: '10px 12px',
+                        borderRadius: '8px',
+                        border: interviewConfig.duration === mins ? '2px solid var(--primary-purple)' : '1px solid var(--border-light)',
+                        background: interviewConfig.duration === mins ? 'rgba(99, 91, 255, 0.15)' : 'var(--bg-subtle)',
+                        color: interviewConfig.duration === mins ? 'var(--primary-purple)' : 'var(--text-main)',
+                        fontWeight: '700',
+                        fontSize: '0.88rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      {mins} Min
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 2. Universal Difficulty Selection */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.88rem', fontWeight: '700', marginBottom: '8px', color: 'var(--text-main)' }}>
+                  🎯 2. Select Difficulty Level
+                </label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {[
+                    { id: 'Easy', label: 'Easy' },
+                    { id: 'Medium', label: 'Medium' },
+                    { id: 'FAANG Level (Hard)', label: 'FAANG Level 🔥' }
+                  ].map((diff) => (
+                    <button
+                      key={diff.id}
+                      type="button"
+                      onClick={() => setInterviewConfig(prev => ({ ...prev, difficulty: diff.id }))}
+                      style={{
+                        flex: 1,
+                        padding: '10px 10px',
+                        borderRadius: '8px',
+                        border: interviewConfig.difficulty === diff.id ? '2px solid var(--primary-purple)' : '1px solid var(--border-light)',
+                        background: interviewConfig.difficulty === diff.id ? 'rgba(99, 91, 255, 0.15)' : 'var(--bg-subtle)',
+                        color: interviewConfig.difficulty === diff.id ? 'var(--primary-purple)' : 'var(--text-main)',
+                        fontWeight: '700',
+                        fontSize: '0.82rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      {diff.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+
+            {/* 3. Interview Mode / Basis Selector */}
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ display: 'block', fontSize: '0.88rem', fontWeight: '700', marginBottom: '8px', color: 'var(--text-main)' }}>
+                📋 3. Select Interview Basis / Mode
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                {[
+                  { id: 'resume', title: '📄 Resume-Based', desc: 'AI reads candidate resume & asks project questions' },
+                  { id: 'role_jd', title: '💼 Custom Role & JD', desc: 'Specify any target role (SDE, Java Dev) & Job Description' },
+                  { id: 'hr', title: '🤝 HR & Behavioral', desc: 'Situational & behavioral culture questions' },
+                  { id: 'cs_core', title: '💻 CS Fundamentals', desc: 'OS, DBMS, Networks, OOPs & DSA' }
+                ].map((m) => (
+                  <div
+                    key={m.id}
+                    onClick={() => setInterviewConfig(prev => ({ ...prev, mode: m.id }))}
+                    style={{
+                      padding: '14px',
+                      borderRadius: '10px',
+                      border: interviewConfig.mode === m.id ? '2px solid var(--primary-purple)' : '1px solid var(--border-light)',
+                      background: interviewConfig.mode === m.id ? 'rgba(99, 91, 255, 0.12)' : 'var(--bg-subtle)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <strong style={{ fontSize: '0.95rem', color: interviewConfig.mode === m.id ? 'var(--primary-purple)' : 'var(--text-main)', display: 'block', marginBottom: '4px' }}>
+                      {m.title}
+                    </strong>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0, lineHeight: '1.3' }}>
+                      {m.desc}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Dynamic Inputs Based on Selection */}
+            {interviewConfig.mode === 'resume' && (
+              <div style={{ padding: '16px', borderRadius: '10px', background: 'var(--bg-subtle)', border: '1px dashed var(--primary-purple)', marginBottom: '24px' }}>
+                <label style={{ display: 'block', fontSize: '0.88rem', fontWeight: '700', marginBottom: '6px' }}>
+                  Upload or Select Candidate Resume
+                </label>
+                <input
+                  type="file"
+                  accept=".pdf,.docx,.txt"
+                  onChange={handleFileUpload}
+                  style={{ fontSize: '0.85rem' }}
+                />
+                {interviewConfig.resumeName && (
+                  <p style={{ fontSize: '0.82rem', color: '#16a34a', fontWeight: '700', marginTop: '6px' }}>
+                    ✓ Loaded Document: {interviewConfig.resumeName} (AI Ready to parse)
+                  </p>
+                )}
+              </div>
+            )}
+
+            {interviewConfig.mode === 'role_jd' && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', marginBottom: '6px' }}>Target Role / Profile Title</label>
+                  <input
+                    type="text"
+                    value={interviewConfig.targetRole}
+                    onChange={(e) => setInterviewConfig(prev => ({ ...prev, targetRole: e.target.value }))}
+                    placeholder="e.g. SDE-1, Java Developer, Full Stack Engineer..."
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-light)', background: 'var(--bg-input)', color: 'var(--text-main)', fontSize: '0.88rem' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', marginBottom: '6px' }}>Target Job Description (JD)</label>
+                  <textarea
+                    rows={2}
+                    value={interviewConfig.jobDescription}
+                    onChange={(e) => setInterviewConfig(prev => ({ ...prev, jobDescription: e.target.value }))}
+                    placeholder="Paste job description details..."
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-light)', background: 'var(--bg-input)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <button
+              className="btn-primary-purple"
+              style={{ width: '100%', padding: '14px', borderRadius: '30px', fontSize: '1.05rem', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+              onClick={handleLaunchFullInterview}
+            >
+              <span>Launch {interviewConfig.duration} Min Customized AI Interview Studio</span>
+              <ArrowRight size={20} />
+            </button>
+
           </div>
 
           <div style={{ margin: '40px 0 20px' }}>
             <h3 style={{ fontSize: '1.2rem', margin: '0 0 8px 0' }}>Practice a Specific Round</h3>
             <p style={{ color: 'var(--text-muted)', margin: 0 }}>Choose exactly what you want to practice and improve today.</p>
+            {selectionWarning && (
+              <div style={{ marginTop: '12px', padding: '12px 16px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid #ef4444', borderRadius: '8px', color: '#f87171', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <ShieldCheck size={18} /> Please select a target interview domain/round below before launching session!
+              </div>
+            )}
           </div>
 
-          <div className="practice-rounds-grid">
+          <div 
+            className="practice-rounds-grid"
+            style={selectionWarning ? { border: '2px solid #ef4444', borderRadius: '16px', padding: '12px' } : {}}
+          >
             {practiceCards.map(card => (
               <div 
                 key={card.id} 

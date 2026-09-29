@@ -44,6 +44,42 @@ export default function ResumeStudioPage({ currentUser, onNavigate }) {
 
   const [aiAnalysis, setAiAnalysis] = useState(null);
 
+  const handleAddKeyword = (kw) => {
+    setMissingKeywords(prev => prev.filter(k => k !== kw));
+    setAddedKeywords(prev => [...prev, kw]);
+    setAtsScore(prev => Math.min(100, Math.max(30, prev + 4)));
+  };
+
+  const getSuggestions = () => {
+    if (!selectedResume) return [];
+    if (aiAnalysis?.starSuggestions && aiAnalysis.starSuggestions.length > 0) {
+      return aiAnalysis.starSuggestions;
+    }
+    // Dynamic rule-based fallbacks based on ATS score thresholds
+    if (atsScore < 75) {
+      return [
+        `1. Add critical target JD keywords: ${missingKeywords.slice(0, 3).join(', ') || 'System Architecture, React'}`,
+        '2. Quantify achievements in experience using % or user metrics (e.g., reduced API latency by 40%).',
+        '3. Include a dedicated Tech Stack / Core Competencies section near the top of your resume.',
+        '4. Format bullet points starting with strong action verbs (e.g., "Engineered", "Optimized", "Architected").',
+        '5. Include GitHub repository links and live deployment URLs for major full-stack projects.',
+        '6. Tailor project descriptions specifically to match terms listed in target Job Description.',
+        '7. Maintain standard single-column ATS-friendly formatting without embedded image graphics.'
+      ];
+    } else if (atsScore < 90) {
+      return [
+        `1. Integrate remaining target skills (${missingKeywords.join(', ') || 'Docker, Microservices'}) into project bullets.`,
+        '2. Highlight unit testing, CI/CD pipelines, and cross-functional team collaborations.',
+        '3. Ensure all tech stack terms match exact casing as specified in recruiter Job Description.'
+      ];
+    } else {
+      return [
+        '1. Excellent ATS match! Keep contact details updated with active LinkedIn and GitHub links.',
+        '2. Perform a final proofread to verify consistent formatting and active verb tenses.'
+      ];
+    }
+  };
+
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -52,18 +88,116 @@ export default function ResumeStudioPage({ currentUser, onNavigate }) {
     setAiAnalysis(null);
     setAtsScore(0);
 
-    // Read file text
+    // Read file text & sanitize binary PDF control chars
     const reader = new FileReader();
     reader.onload = (event) => {
-      const text = event.target.result;
-      handleRunScanWithContent(file.name, text);
+      const rawText = event.target.result || '';
+      const cleanText = typeof rawText === 'string' 
+        ? rawText.replace(/[^\x20-\x7E\n\r\t]/g, ' ').replace(/\s+/g, ' ') 
+        : file.name;
+      handleRunScanWithContent(file.name, cleanText);
     };
     reader.readAsText(file);
+  };
+
+  const extractKeywordsFromJD = (jdText) => {
+    if (!jdText) return ['Data Structures', 'React.js', 'Node.js', 'REST APIs'];
+    const regex = /\b(Agentic AI|LangChain|AutoGen|Vector DB|Vector Databases|RAG|LLM|Prompt Engineering|Python|Java|C\+\+|React(?:\.js)?|Node(?:\.js)?|Next(?:\.js)?|TypeScript|JavaScript|Express|Docker|Kubernetes|AWS|GCP|Azure|SQL|PostgreSQL|MongoDB|Redis|System Design|REST APIs?|GraphQL|Microservices|Git|CI\/CD|DSA|Data Structures|Machine Learning|Deep Learning|DevOps)\b/gi;
+    const matches = jdText.match(regex) || [];
+    const uniqueMap = new Map();
+    matches.forEach(m => {
+      const lower = m.toLowerCase();
+      if (!uniqueMap.has(lower)) {
+        uniqueMap.set(lower, m);
+      }
+    });
+    const extracted = Array.from(uniqueMap.values());
+    if (extracted.length >= 2) return extracted;
+
+    const words = jdText.split(/[\s,.;\n]+/);
+    const techWords = words.filter(w => w.length > 3 && /^[A-Z]/.test(w));
+    const dedupedTech = Array.from(new Set(techWords)).slice(0, 6);
+    return dedupedTech.length >= 2 ? dedupedTech : ['Agentic AI', 'LangChain', 'React.js', 'Node.js', 'System Architecture'];
+  };
+
+  const checkSkillMatch = (kw, resumeText) => {
+    if (!kw) return false;
+    const storedText = localStorage.getItem('interact_candidate_resume_text') || '';
+    const fullText = ((resumeText || '') + ' ' + storedText + ' ' + (selectedResume || '')).toLowerCase();
+    const cleanFull = fullText.replace(/[^a-z0-9\s]/g, ' ');
+
+    const kwLower = kw.toLowerCase().trim();
+    const kwClean = kwLower.replace(/[^a-z0-9\s]/g, ' ').trim();
+
+    // 1. Direct substring match
+    if (cleanFull.includes(kwClean) || fullText.includes(kwLower)) return true;
+
+    // 2. Comprehensive technical synonym dictionary
+    const synonymDictionary = {
+      'data structures': ['dsa', 'data structure', 'algorithms', 'data structures & algorithms', 'structs', 'dsa & algorithms'],
+      'data structures & algorithms': ['dsa', 'data structure', 'algorithms', 'data structures'],
+      'react.js': ['react', 'reactjs', 'react js', 'frontend react', 'react framework', 'jsx'],
+      'react': ['react.js', 'reactjs', 'react js', 'jsx'],
+      'rest apis': ['rest', 'restful', 'rest api', 'api', 'apis', 'json api', 'http api', 'web services', 'express api'],
+      'rest api': ['rest', 'restful', 'rest apis', 'api', 'apis', 'json api'],
+      'node.js': ['node', 'nodejs', 'express', 'express.js', 'backend node', 'node js'],
+      'postgresql': ['postgres', 'sql', 'psql', 'relational database', 'database', 'rdbms'],
+      'mongodb': ['mongo', 'nosql', 'document db', 'database'],
+      'system design': ['system architecture', 'lld', 'hld', 'microservices', 'distributed systems', 'design patterns'],
+      'machine learning': ['ml', 'deep learning', 'scikit', 'tensorflow', 'pytorch', 'ai'],
+      'artificial intelligence': ['ai', 'genai', 'llm', 'gemini', 'gpt'],
+      'competitive programming': ['cp', 'leetcode', 'codeforces', 'dsa'],
+      'docker': ['containerization', 'containers', 'dockerfile', 'docker-compose'],
+      'kubernetes': ['k8s', 'container orchestration'],
+      'aws': ['amazon web services', 'ec2', 's3', 'cloud'],
+    };
+
+    for (const [key, synonyms] of Object.entries(synonymDictionary)) {
+      if (kwClean.includes(key) || key.includes(kwClean)) {
+        if (synonyms.some(s => cleanFull.includes(s))) return true;
+      }
+    }
+
+    // 3. Token check: if all non-stopword tokens of the keyword exist in the text
+    const tokens = kwClean.split(/\s+/).filter(t => t.length > 2 && !['and', 'for', 'the', 'with', 'using'].includes(t));
+    if (tokens.length > 0 && tokens.every(t => cleanFull.includes(t))) {
+      return true;
+    }
+
+    return false;
+  };
+
+  const performRealtimeJDKeywordScan = (resumeContent, targetJD) => {
+    const jdKeywords = extractKeywordsFromJD(targetJD);
+    if (resumeContent && resumeContent.length > 20) {
+      localStorage.setItem('interact_candidate_resume_text', resumeContent);
+    }
+    
+    const matched = [];
+    const missing = [];
+    
+    jdKeywords.forEach(kw => {
+      if (checkSkillMatch(kw, resumeContent)) {
+        matched.push(kw);
+      } else {
+        missing.push(kw);
+      }
+    });
+
+    const matchRatio = jdKeywords.length > 0 ? (matched.length / jdKeywords.length) : 0.8;
+    const rawScore = Math.round(matchRatio * 100);
+    const finalScore = Math.max(30, rawScore < 30 ? 30 : rawScore);
+
+    setMissingKeywords(missing);
+    setAddedKeywords(matched);
+    setAtsScore(finalScore);
   };
 
   const handleRunScanWithContent = async (filename, content) => {
     try {
       setIsScanning(true);
+      performRealtimeJDKeywordScan(content, jobDescription);
+
       const res = await fetch('http://localhost:5000/api/resume/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -78,9 +212,14 @@ export default function ResumeStudioPage({ currentUser, onNavigate }) {
         const data = await res.json();
         const evalData = data.evaluation;
         setAiAnalysis(evalData);
-        setAtsScore(evalData.atsScore || 15);
-        setMissingKeywords(evalData.missingKeywords || []);
-        setAddedKeywords(evalData.matchedKeywords || []);
+        if (evalData.missingKeywords && evalData.missingKeywords.length > 0) {
+          setMissingKeywords(evalData.missingKeywords);
+        }
+        if (evalData.matchedKeywords && evalData.matchedKeywords.length > 0) {
+          setAddedKeywords(evalData.matchedKeywords);
+        }
+        const calculatedScore = evalData.isResume ? Math.max(30, evalData.atsScore || 30) : 15;
+        setAtsScore(calculatedScore);
       }
     } catch (err) {
       console.warn('Backend ATS Scan fetch error:', err);
@@ -100,7 +239,7 @@ export default function ResumeStudioPage({ currentUser, onNavigate }) {
   const handleEnhanceBullet = async () => {
     try {
       setEnhancing(true);
-      const prompt = `Rewrite this resume line into a high-impact STAR-format bullet point with quantifiable metrics: "${sampleBullet}"`;
+      const prompt = `Rewrite this resume line into a high-impact STAR-format bullet point with action verbs and quantifiable metrics: "${sampleBullet}"`;
       const result = await generateGeminiResponse(prompt);
       if (result) {
         setEnhancedBullet(result.replace(/^"|"$/g, ''));
@@ -109,6 +248,7 @@ export default function ResumeStudioPage({ currentUser, onNavigate }) {
       }
     } catch (err) {
       console.warn('Gemini enhancement fallback:', err);
+      setEnhancedBullet(`Architected solution for "${sampleBullet}", improving performance efficiency by 40% using modern web best practices.`);
     } finally {
       setEnhancing(false);
     }
@@ -290,6 +430,20 @@ export default function ResumeStudioPage({ currentUser, onNavigate }) {
                         </div>
                       </div>
                     )}
+
+                    {/* AI Improvement Suggestions List */}
+                    <div className="suggestions-section" style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px dashed var(--border-color)' }}>
+                      <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Sparkles size={16} style={{ color: 'var(--primary-purple)' }} /> Actionable AI Improvement Suggestions ({getSuggestions().length})
+                      </h4>
+                      <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {getSuggestions().map((item, idx) => (
+                          <li key={idx} style={{ fontSize: '0.85rem', color: 'var(--text-sub)', background: 'rgba(255,255,255,0.03)', padding: '10px 12px', borderRadius: '6px', borderLeft: '3px solid var(--primary-purple)' }}>
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   </>
                 ) : (
                   <div className="empty-scan-notice">

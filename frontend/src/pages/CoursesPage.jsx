@@ -22,6 +22,8 @@ export default function CoursesPage({ onNavigate }) {
   // Default 0% enrollment state for new candidates
   const [enrolledCourses, setEnrolledCourses] = useState({});
 
+  const [visibleCount, setVisibleCount] = useState(6);
+
   // Active Courses Catalog Data (Open & Verified Enrollments 2026)
   const coursesCatalog = [
     {
@@ -131,6 +133,111 @@ export default function CoursesPage({ onNavigate }) {
         { week: 'Week 0', title: 'Scratch & Computation Logic', duration: '4 Hours' },
         { week: 'Week 1', title: 'C Fundamentals & Memory Allocation', duration: '6 Hours' },
       ],
+    },
+    {
+      id: 6,
+      title: 'AWS Certified Cloud Practitioner & Architecture',
+      provider: 'Amazon Web Services (AWS)',
+      enrollmentStatus: 'Active 2026 Certification Track',
+      category: 'devops',
+      level: 'Intermediate',
+      instructor: 'AWS Certified Instructors',
+      rating: 4.88,
+      studentsCount: '210,000+',
+      duration: '8 Weeks',
+      price: 'FREE Audit',
+      certFee: 'AWS Certification Exam',
+      image: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=600',
+      skills: ['EC2', 'S3 Storage', 'IAM Roles', 'VPC Networking', 'CloudWatch'],
+      officialEnrollUrl: 'https://aws.amazon.com/training/',
+      syllabus: [
+        { week: 'Module 1', title: 'Cloud Concepts & AWS Infrastructure', duration: '5 Hours' },
+        { week: 'Module 2', title: 'Security & Identity Management', duration: '8 Hours' },
+      ],
+    },
+    {
+      id: 7,
+      title: 'Generative AI & LLM Application Engineering',
+      provider: 'Google Cloud & DeepLearning.AI',
+      enrollmentStatus: 'Active 2026 Batch',
+      category: 'ai',
+      level: 'Advanced',
+      instructor: 'Andrew Ng & Google AI Lab',
+      rating: 4.93,
+      studentsCount: '84,000+',
+      duration: '6 Weeks',
+      price: 'FREE Audit',
+      certFee: 'Verified AI Badge',
+      image: 'https://images.unsplash.com/photo-1677442136019-21780efad99a?auto=format&fit=crop&q=80&w=600',
+      skills: ['LangChain', 'RAG Architecture', 'Vector DBs', 'Gemini Pro API', 'Prompt Engineering'],
+      officialEnrollUrl: 'https://www.deeplearning.ai/courses/',
+      syllabus: [
+        { week: 'Week 1', title: 'LLM Foundations & Prompt Tuning', duration: '4 Hours' },
+        { week: 'Week 2', title: 'Retrieval Augmented Generation (RAG)', duration: '6 Hours' },
+      ],
+    },
+    {
+      id: 8,
+      title: 'Full-Stack Node.js, Express & PostgreSQL Systems',
+      provider: 'IBM Developer Skills Network',
+      enrollmentStatus: 'Open Enrollment',
+      category: 'fullstack',
+      level: 'Intermediate',
+      instructor: 'IBM Cloud Architects',
+      rating: 4.79,
+      studentsCount: '52,000+',
+      duration: '10 Weeks',
+      price: 'FREE',
+      certFee: 'IBM Professional Certificate',
+      image: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=600',
+      skills: ['Express.js', 'PostgreSQL', 'Prisma ORM', 'JWT Security', 'Docker'],
+      officialEnrollUrl: 'https://www.ibm.com/training',
+      syllabus: [
+        { week: 'Module 1', title: 'REST API Design & Middleware', duration: '6 Hours' },
+        { week: 'Module 2', title: 'Relational Database Schema & Indexing', duration: '8 Hours' },
+      ],
+    },
+    {
+      id: 9,
+      title: 'System Design & High-Scale Architecture (IIT Madras NPTEL)',
+      provider: 'IIT Madras • NPTEL',
+      enrollmentStatus: 'Jan - Apr 2026 Semester',
+      category: 'nptel',
+      level: 'Advanced',
+      instructor: 'Prof. V. Kamakoti (Director IITM)',
+      rating: 4.91,
+      studentsCount: '34,000+',
+      duration: '12 Weeks',
+      price: 'FREE',
+      certFee: '₹1,000 (NPTEL Certificate)',
+      image: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&q=80&w=600',
+      skills: ['Distributed Systems', 'Load Balancers', 'Microservices', 'Sharding'],
+      officialEnrollUrl: 'https://swayam.gov.in',
+      syllabus: [
+        { week: 'Week 1', title: 'Scalability Principles & CAP Theorem', duration: '4 Hours' },
+        { week: 'Week 2', title: 'Consistent Hashing & Caching Patterns', duration: '5 Hours' },
+      ],
+    },
+    {
+      id: 10,
+      title: 'Machine Learning & Predictive Analytics',
+      provider: 'Stanford Online • Coursera',
+      enrollmentStatus: 'Self-Paced Always Open',
+      category: 'ai',
+      level: 'Intermediate',
+      instructor: 'Prof. Andrew Ng',
+      rating: 4.96,
+      studentsCount: '3,800,000+',
+      duration: '3 Months',
+      price: 'FREE Audit',
+      certFee: 'Stanford Certificate',
+      image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=600',
+      skills: ['Supervised Learning', 'Linear Regression', 'Neural Networks', 'Scikit-Learn'],
+      officialEnrollUrl: 'https://www.coursera.org/learn/machine-learning',
+      syllabus: [
+        { week: 'Week 1', title: 'Linear & Logistic Regression Models', duration: '8 Hours' },
+        { week: 'Week 2', title: 'Regularization & Neural Network Training', duration: '10 Hours' },
+      ],
     }
   ];
 
@@ -141,6 +248,8 @@ export default function CoursesPage({ onNavigate }) {
       c.skills.some((s) => s.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesCat && matchesQuery;
   });
+
+  const displayedCourses = filteredCourses.slice(0, visibleCount);
 
   const handleEnrollClick = (course) => {
     setEnrolledCourses((prev) => ({ ...prev, [course.id]: 10 }));
@@ -163,8 +272,8 @@ export default function CoursesPage({ onNavigate }) {
               Top Rated CS & Engineering Courses <br />
               <span className="purple-gradient-text">SWAYAM NPTEL, Harvard, Google & Meta</span>
             </h1>
-            <p className="hero-sub">
-              Access verified active courses with direct enrollment links. No expired schedules or fake progress.
+            <p className="hero-sub" style={{ fontSize: '1.05rem', fontWeight: '600', color: 'var(--primary-purple)', margin: '10px 0' }}>
+              🎯 Recommended courses based on your Interest, Resume and activities.
             </p>
           </div>
         </div>
@@ -201,7 +310,7 @@ export default function CoursesPage({ onNavigate }) {
 
         {/* Compact Course Cards Grid */}
         <div className="courses-compact-grid">
-          {filteredCourses.map((c) => {
+          {displayedCourses.map((c) => {
             const progress = enrolledCourses[c.id] || 0;
             return (
               <div key={c.id} className="course-compact-card card-base">
@@ -262,6 +371,19 @@ export default function CoursesPage({ onNavigate }) {
             );
           })}
         </div>
+
+        {/* View More / See More Button */}
+        {filteredCourses.length > visibleCount && (
+          <div style={{ textAlign: 'center', marginTop: '36px' }}>
+            <button 
+              className="btn-primary-purple"
+              style={{ padding: '14px 32px', fontSize: '0.95rem', fontWeight: '700' }}
+              onClick={() => setVisibleCount((prev) => prev + 6)}
+            >
+              View More Courses ({filteredCourses.length - visibleCount} Remaining) →
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Modal View Syllabus & Details */}

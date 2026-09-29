@@ -9,47 +9,56 @@ export const scanResume = async (req, res, next) => {
     const targetJd = jobDescription || 'Data Structures, React.js, Node.js, REST APIs, Database Management';
 
     const prompt = `
-You are an expert ATS (Applicant Tracking System) Screener and Technical Hiring Manager.
-Analyze the following candidate document content against the target Job Description.
+You are an expert ATS (Applicant Tracking System) Screener and Senior Technical Recruiter.
+Perform REAL-TIME analysis of the candidate's resume against the TARGET JOB DESCRIPTION.
 
-DOCUMENT FILENAME/CONTENT:
+CANDIDATE DOCUMENT CONTENT / FILENAME:
 "${docText.slice(0, 4000)}"
 
-TARGET JOB DESCRIPTION:
+TARGET JOB DESCRIPTION (JD):
 "${targetJd.slice(0, 3000)}"
 
-CRITICAL VALIDATION STEP:
-1. Determine if this document is actually a Software Developer Resume / CV.
-2. If the document is an Attendance Sheet, Class Register, Invoice, Non-technical list, or random non-resume text:
-   - Set "isResume": false
-   - Set "atsScore": 15
-   - Set "summary": "DOCUMENT TYPE ALERT: Uploaded file '${filename || 'document'}' appears to be an attendance record / non-resume document rather than a software developer CV. It lacks technical skills, software projects, and engineering experience."
-   - Set "missingKeywords": ["Data Structures", "React.js", "Node.js", "REST APIs", "SQL Database"]
-   - Set "matchedKeywords": []
-3. If the document IS a technical resume / CV:
-   - Set "isResume": true
-   - Calculate a logical ATS score (0 to 100) based on actual skill match, project evidence, and formatting.
-   - List missing keywords from the JD.
-   - List matched keywords.
-   - Provide section scores: Skills (0-100), Experience (0-100), Projects (0-100), Formatting (0-100).
-   - Provide 3 STAR-format improvement suggestions.
+STRICT EVALUATION RULES:
+1. Determine if this document is a Technical Resume / CV.
+2. If non-resume (attendance list, invoice, random text): "isResume": false, "atsScore": 15.
+3. If valid Technical Resume / CV:
+   - "isResume": true
+   - Extract keywords ONLY and DIRECTLY from the provided Target Job Description (do NOT hallucinate unmentioned skills).
+   - CRITICAL SYNONYM / ABBREVIATION / ALIAS RECOGNITION:
+     You MUST treat common technical abbreviations and synonyms as EXACT MATCHES:
+     * "DSA", "Data Structure", "Algorithms" => MATCHES "Data Structures" / "Data Structures & Algorithms"
+     * "React", "ReactJS", "React JS", "JSX" => MATCHES "React.js" / "React"
+     * "REST", "RESTful", "REST API", "API", "JSON API" => MATCHES "REST APIs"
+     * "Node", "NodeJS", "Express", "Node JS" => MATCHES "Node.js"
+     * "Postgres", "SQL", "Database", "PSQL" => MATCHES "PostgreSQL" / "Database Management"
+     * "ML", "Machine Learning" => MATCHES "Machine Learning" / "ML"
+     * "AI", "GenAI", "LLM" => MATCHES "Artificial Intelligence" / "AI"
+     * "CP", "LeetCode", "Codeforces" => MATCHES "Competitive Programming"
+     Any keyword present via synonym/abbreviation MUST be placed in "matchedKeywords" and NEVER in "missingKeywords".
+   - Calculate ATS score (30 to 100). Minimum score for valid software resume is 30.
+   - List missing keywords found in JD but completely absent in Resume.
+   - List matched keywords found in both.
+   - SUGGESTION COUNT REQUIREMENT:
+     * If atsScore < 75: Provide EXACTLY 5 to 8 specific, actionable improvement suggestions based on JD gap.
+     * If 75 <= atsScore < 90: Provide EXACTLY 2 to 4 specific improvement suggestions.
+     * If atsScore >= 90: Provide 2 advanced polish suggestions.
 
-Return STRICT JSON ONLY in this format:
+Return STRICT JSON ONLY format:
 {
   "isResume": true,
-  "atsScore": 85,
-  "summary": "",
-  "missingKeywords": ["Redis", "Docker", "System Architecture"],
-  "matchedKeywords": ["React.js", "Node.js", "Data Structures"],
+  "atsScore": 82,
+  "summary": "Real-time analysis against target JD...",
+  "missingKeywords": [],
+  "matchedKeywords": [],
   "sectionScores": {
-    "skillsScore": 88,
-    "experienceScore": 75,
-    "projectsScore": 85,
-    "formattingScore": 90
+    "skillsScore": 85,
+    "experienceScore": 78,
+    "projectsScore": 80,
+    "formattingScore": 85
   },
   "starSuggestions": [
-    "Quantify impact in web projects (e.g. 'Improved response latency by 35%')",
-    "Add Redis caching experience to backend section"
+    "Point 1...",
+    "Point 2..."
   ]
 }
 `;

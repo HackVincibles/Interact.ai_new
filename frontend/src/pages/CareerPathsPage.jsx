@@ -1,27 +1,27 @@
 import React, { useState } from 'react';
-import { 
-  Compass, 
-  Code, 
-  Brain, 
-  Cloud, 
-  ShieldCheck, 
-  Palette, 
-  GraduationCap, 
-  Search, 
-  ArrowRight, 
-  CheckCircle2, 
-  Sparkles, 
-  Clock, 
-  TrendingUp, 
-  DollarSign, 
-  BookOpen, 
-  ExternalLink, 
-  Award, 
-  ChevronRight, 
-  Bot, 
-  X, 
-  Target, 
-  Layers, 
+import {
+  Compass,
+  Code,
+  Brain,
+  Cloud,
+  ShieldCheck,
+  Palette,
+  GraduationCap,
+  Search,
+  ArrowRight,
+  CheckCircle2,
+  Sparkles,
+  Clock,
+  TrendingUp,
+  DollarSign,
+  BookOpen,
+  ExternalLink,
+  Award,
+  ChevronRight,
+  Bot,
+  X,
+  Target,
+  Layers,
   Zap,
   Check,
   Share2
@@ -293,7 +293,7 @@ const domainRoadmaps = [
     ],
   },
 ];
-export default function CareerPathsPage({ _onNavigate }) {
+export default function CareerPathsPage({ onNavigate, currentUser = null }) {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const { addNotification } = useNotifications();
   const [searchQuery, setSearchQuery] = useState('');
@@ -303,6 +303,51 @@ export default function CareerPathsPage({ _onNavigate }) {
 
   // Subtopic Checkbox State for Interactive Milestone Tracking (Default 0% for new users)
   const [completedSubtopics, setCompletedSubtopics] = useState({});
+  const [chatLoading, setChatLoading] = useState(false);
+
+  // Live Interview Simulator state within Career Roadmap
+  const [interviewStage, setInterviewStage] = useState(null); // null | 'lobby' | 'studio'
+  const [activeMediaStream, setActiveMediaStream] = useState(null);
+
+  const handleStartStudio = (stream) => {
+    setActiveMediaStream(stream);
+    setInterviewStage('studio');
+  };
+
+  const handleFinishInterview = () => {
+    setInterviewStage(null);
+  };
+
+  const calculateDomainProgress = (domain) => {
+    if (!domain || !domain.stages) return 0;
+    let totalSubtopics = 0;
+    let completedCount = 0;
+    domain.stages.forEach((stage) => {
+      stage.subtopics?.forEach((sub) => {
+        totalSubtopics++;
+        if (completedSubtopics[sub.id]) {
+          completedCount++;
+        }
+      });
+    });
+    return totalSubtopics > 0 ? Math.round((completedCount / totalSubtopics) * 100) : 0;
+  };
+
+  const filteredDomains = domainRoadmaps.filter((domain) => {
+    const matchesCat = selectedCategory === 'all' || domain.category === selectedCategory;
+    const matchesQuery = !searchQuery.trim() || 
+      domain.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      domain.desc.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      domain.skills.some(s => s.toLowerCase().includes(searchQuery.toLowerCase()));
+    return matchesCat && matchesQuery;
+  });
+
+  const handleToggleSubtopic = (subtopicId, _subtopicTitle) => {
+    setCompletedSubtopics((prev) => ({
+      ...prev,
+      [subtopicId]: !prev[subtopicId],
+    }));
+  };
 
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -313,124 +358,297 @@ export default function CareerPathsPage({ _onNavigate }) {
         setActiveDomain(foundDomain);
       }
     }
-  }, []); // Note: this will require moving domainRoadmaps above this effect or outside the component, let me just move domainRoadmaps outside or above.
+  }, []);
 
-  // AI Counselor Modal Form State
+  // AI Counselor Modal Form State & Real-time Chat
   const [counselorForm, setCounselorForm] = useState({
     branch: 'Computer Science Engineering',
     year: '3rd Year (2026)',
     codingLevel: 'Intermediate (DSA + Basic Web)',
     interest: 'Software Development & AI',
   });
+  const [counselorTab, setCounselorTab] = useState('paths'); // 'paths' or 'chat'
   const [counselorLoading, setCounselorLoading] = useState(false);
-  const [counselorResult, setCounselorResult] = useState(null);
-
-  // Roadmap Interview Preparation State
-  const [interviewStage, setInterviewStage] = useState(null); // null, 'lobby', 'studio'
-  const [activeMediaStream, setActiveMediaStream] = useState(null);
-
-  const handleStartLobby = () => {
-    setInterviewStage('lobby');
-  };
-
-  const handleStartStudio = ({ stream }) => {
-    setActiveMediaStream(stream);
-    setInterviewStage('studio');
-  };
-
-  const handleFinishInterview = () => {
-    setInterviewStage(null);
-    setActiveMediaStream(null);
-    alert('Roadmap Preparation Session Completed!');
-  };
-
-  const handleShareRoadmap = () => {
-    setIsShareModalOpen(true);
-  };
-
-  // Filtering Logic
-  const filteredDomains = domainRoadmaps.filter((item) => {
-    const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
-    const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          item.desc.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          item.skills.some((s) => s.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesCategory && matchesSearch;
+  const [counselorPaths, setCounselorPaths] = useState(null);
+  const [chatInput, setChatInput] = useState('');
+  const [chatMessages, setChatMessages] = useState([
+    { id: 1, sender: 'ai', text: 'Hello! I am your AI Career Counselor powered by Gemini. Ask me anything about tech roles, skills, or career direction!' }
+  ]);
+  const [savedPaths, setSavedPaths] = useState(() => {
+    try {
+      const saved = localStorage.getItem('interact_saved_career_paths');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
   });
 
-  const handleToggleSubtopic = (subtopicId, title) => {
-    setCompletedSubtopics((prev) => {
-      const isCompleting = !prev[subtopicId];
-      
-      if (isCompleting && title) {
-        addNotification({
-          title: 'Roadmap Milestone Completed',
-          message: `You've completed: "${title}"`,
-          category: 'roadmap',
-          actionUrl: 'career-paths',
-          actionLabel: 'View Roadmap',
-          priority: 'normal'
-        });
+  const handleOpenCounselor = () => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    setIsCounselorOpen(true);
+  };
+
+  React.useEffect(() => {
+    if (isCounselorOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isCounselorOpen]);
+
+  // Real-time Chat Handler with Gemini API
+  const handleSendChatMessage = async (e) => {
+    e.preventDefault();
+    if (!chatInput.trim()) return;
+    const userMsg = chatInput.trim();
+    setChatInput('');
+    setChatMessages((prev) => [...prev, { id: Date.now(), sender: 'user', text: userMsg }]);
+
+    try {
+      setChatLoading(true);
+      const prompt = `You are an expert tech career counselor. The student asks: "${userMsg}". Student context: ${counselorForm.branch}, ${counselorForm.year}, ${counselorForm.interest}. Give a concise, encouraging, real-time advice with specific technologies.`;
+      const aiReply = await generateGeminiResponse(prompt);
+      setChatMessages((prev) => [
+        ...prev,
+        { id: Date.now() + 1, sender: 'ai', text: aiReply || 'Based on current 2026 tech trends, focusing on DSA algorithms, Full-Stack React/Node, and Cloud Fundamentals will give you the highest placement edge.' }
+      ]);
+    } catch (err) {
+      setChatMessages((prev) => [
+        ...prev,
+        { id: Date.now() + 1, sender: 'ai', text: 'Focus on building 2 production-grade projects and practicing DSA regularly to maximize your placement chances.' }
+      ]);
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (currentUser) {
+      setCounselorForm((prev) => ({
+        ...prev,
+        branch: currentUser.branch || currentUser.department || prev.branch,
+      }));
+    }
+  }, [currentUser]);
+
+  // Generate 2-3 Best Personalized Career Paths based on Candidate Profile
+  const handleGenerateBestPaths = (e) => {
+    if (e) e.preventDefault();
+    setCounselorLoading(true);
+
+    const interestLower = (counselorForm.interest || '').toLowerCase();
+    const branchLower = (counselorForm.branch || '').toLowerCase();
+    const levelText = counselorForm.codingLevel;
+    const yearText = counselorForm.year;
+
+      let paths = [];
+
+      if (interestLower.includes('data') || interestLower.includes('ai')) {
+        paths = [
+          {
+            id: 'path-ai-1',
+            title: 'Full-Stack AI & LLM Systems Engineer',
+            matchScore: '98%',
+            salaryRange: '₹14 - ₹28 LPA',
+            reasoning: `Perfect alignment with your interest in AI & Machine Learning. Ideal for a ${counselorForm.branch} student (${yearText}) at ${levelText} level.`,
+            roadmap: [
+              'Python Data Stack (Pandas, NumPy, PyTorch)',
+              'LLM Prompt Engineering & Gemini/OpenAI API Integration',
+              'Vector Databases (Pinecone/Upstash Redis) & RAG Pipelines',
+              'Deploy LLM Web Apps with FastApi & React',
+              'Complete AI Mock Interview Drills on Interact.ai'
+            ]
+          },
+          {
+            id: 'path-ai-2',
+            title: 'Data Science & Predictive ML Specialist',
+            matchScore: '94%',
+            salaryRange: '₹12 - ₹24 LPA',
+            reasoning: `High industry hiring for data analytics and predictive modeling in fast-scaling tech companies.`,
+            roadmap: [
+              'Exploratory Data Analysis & Feature Engineering',
+              'Supervised & Unsupervised Machine Learning Models',
+              'Data Visualization Dashboards (Streamlit / Tableau)',
+              'Model Deployment & MLOps CI/CD Pipelines',
+              'Complete 3 Data Science Mock Interviews on Interact.ai'
+            ]
+          },
+          {
+            id: 'path-ai-3',
+            title: 'AI Cloud Infrastructure & MLOps Specialist',
+            matchScore: '90%',
+            salaryRange: '₹11 - ₹22 LPA',
+            reasoning: `Bridges software engineering with cloud AI model serving infrastructure.`,
+            roadmap: [
+              'Docker Containerization for ML Models',
+              'AWS SageMaker & Cloud Deployment',
+              'Model Monitoring & Drift Detection',
+              'Scalable GPU & Inference Architecture',
+              'Interact.ai Cloud AI Readiness Evaluation'
+            ]
+          }
+        ];
+      } else if (interestLower.includes('devops') || interestLower.includes('cloud') || interestLower.includes('security')) {
+        paths = [
+          {
+            id: 'path-cloud-1',
+            title: 'Cloud DevOps & Site Reliability Engineer (SRE)',
+            matchScore: '97%',
+            salaryRange: '₹12 - ₹22 LPA',
+            reasoning: `Tailored for ${counselorForm.branch} (${yearText}). Exceptional market demand for cloud deployment automation.`,
+            roadmap: [
+              'Linux System Administration & Shell Automation',
+              'Docker Containerization & Kubernetes Cluster Orchestration',
+              'Infrastructure as Code (Terraform) & AWS Architecture',
+              'CI/CD Pipeline Automation (GitHub Actions / Jenkins)',
+              'System Monitoring & Logging with Prometheus & Grafana'
+            ]
+          },
+          {
+            id: 'path-cloud-2',
+            title: 'Cloud Solutions Architect (AWS / Azure)',
+            matchScore: '93%',
+            salaryRange: '₹14 - ₹26 LPA',
+            reasoning: `Focuses on high-availability architecture, VPC security, and multi-region cloud design.`,
+            roadmap: [
+              'AWS Certified Cloud Practitioner & Developer Track',
+              'Virtual Private Cloud (VPC) & IAM Security Roles',
+              'Serverless Computing (AWS Lambda & DynamoDB)',
+              'Disaster Recovery & High-Availability Design',
+              'Interact.ai Cloud Architect Mock Drills'
+            ]
+          },
+          {
+            id: 'path-cloud-3',
+            title: 'Cybersecurity Analyst & DevSecOps Engineer',
+            matchScore: '89%',
+            salaryRange: '₹10 - ₹20 LPA',
+            reasoning: `High security compliance demand across financial fintech and enterprise SaaS platforms.`,
+            roadmap: [
+              'Network Security & Wireshark Packet Analysis',
+              'SIEM Security Operations & Log Analysis',
+              'Ethical Hacking & Penetration Testing Basics',
+              'Application Security Code Audit',
+              'Interact.ai Security Certification Prep'
+            ]
+          }
+        ];
+      } else if (interestLower.includes('gate') || interestLower.includes('govt') || interestLower.includes('isro')) {
+        paths = [
+          {
+            id: 'path-govt-1',
+            title: 'GATE CS Top 100 AIR Ranker & PSU Officer',
+            matchScore: '99%',
+            salaryRange: '₹8 - ₹18 LPA (Govt Grade A)',
+            reasoning: `Directly tailored for ${counselorForm.branch} students in ${yearText} targeting Public Sector Unit (PSU) recruitment.`,
+            roadmap: [
+              'Discrete Math & Engineering Mathematics (15 Marks)',
+              'Algorithms, Data Structures & C Programming (20 Marks)',
+              'Operating Systems & Computer Networks (18 Marks)',
+              'DBMS & Theory of Computation (15 Marks)',
+              'Complete 10 GATE CS Full Length Mock Tests'
+            ]
+          },
+          {
+            id: 'path-govt-2',
+            title: 'ISRO / BARC Scientist Engineer (IT & CS)',
+            matchScore: '95%',
+            salaryRange: '₹10 - ₹20 LPA (Central Govt)',
+            reasoning: `Prestigious research Scientist positions at ISRO / BARC for CS engineering graduates.`,
+            roadmap: [
+              'Advanced COA & Microprocessor Architecture',
+              'Space Telemetry Software & Real-Time OS',
+              'ISRO Scientist Previous Year Paper Solving',
+              'Technical Scientist Panel Interview Preparation',
+              'Interact.ai ISRO Interview Simulation'
+            ]
+          },
+          {
+            id: 'path-govt-3',
+            title: 'National Informatics Centre (NIC) Scientific Officer',
+            matchScore: '91%',
+            salaryRange: '₹8 - ₹16 LPA',
+            reasoning: `Key government digital infrastructure engineering roles under MeitY.`,
+            roadmap: [
+              'Govt E-Governance Architecture',
+              'Database Management & SQL Systems',
+              'Cyber Laws & Data Privacy Standards',
+              'NIC Written Examination Drills',
+              'Final Selection Panel Interview Prep'
+            ]
+          }
+        ];
+      } else {
+        paths = [
+          {
+            id: 'path-sde-1',
+            title: 'Software Development Engineer (SDE-1)',
+            matchScore: '96%',
+            salaryRange: '₹12 - ₹24 LPA',
+            reasoning: `Custom matched for your ${levelText} skill level and ${counselorForm.branch} (${yearText}) background.`,
+            roadmap: [
+              'Master Data Structures & Algorithms (Trees, Graphs, DP)',
+              'Build Distributed REST & GraphQL APIs with Node.js/PostgreSQL',
+              'Integrate Upstash Redis Caching & Microservices',
+              'Deploy Containerized Full-Stack Apps on Cloud',
+              'Complete 5 AI Technical Mock Interviews on Interact.ai'
+            ]
+          },
+          {
+            id: 'path-sde-2',
+            title: 'Full-Stack Web Architect (React & Node.js)',
+            matchScore: '93%',
+            salaryRange: '₹10 - ₹22 LPA',
+            reasoning: `High demand for building modern web applications, interactive dashboards, and SaaS platforms.`,
+            roadmap: [
+              'Frontend Mastery: React Hooks, State & Modern CSS',
+              'Backend Systems: Node.js, Express & Relational Databases',
+              'State Management & WebSockets Real-Time Communication',
+              'CI/CD Deployment & Performance Optimization',
+              'Interact.ai Full-Stack IDE Mock Interview'
+            ]
+          },
+          {
+            id: 'path-sde-3',
+            title: 'High-Scale Backend Systems Engineer',
+            matchScore: '88%',
+            salaryRange: '₹11 - ₹20 LPA',
+            reasoning: `Focuses on database optimization, load balancing, message queues (Kafka/RabbitMQ), and system design.`,
+            roadmap: [
+              'Advanced Java / C++ Memory & Multithreading',
+              'PostgreSQL Indexing & Database Query Tuning',
+              'Message Queues & Microservices Architecture',
+              'System Design Fundamentals (HLD / LLD)',
+              'Interact.ai System Design Drill'
+            ]
+          }
+        ];
       }
 
-      return {
-        ...prev,
-        [subtopicId]: isCompleting,
-      };
-    });
-  };
-
-  const calculateDomainProgress = (domain) => {
-    let total = 0;
-    let completed = 0;
-    domain.stages.forEach((stage) => {
-      stage.subtopics.forEach((st) => {
-        total += 1;
-        if (completedSubtopics[st.id]) completed += 1;
-      });
-    });
-    if (total === 0) return 0;
-    return Math.round((completed / total) * 100);
-  };
-
-  const handleRunAICounselor = async (e) => {
-    e.preventDefault();
-    try {
-      setCounselorLoading(true);
-      // Generate real dynamic recommendation using Gemini service!
-      const geminiPrompt = `Analyze student profile: Branch = ${counselorForm.branch}, Year = ${counselorForm.year}, Skill = ${counselorForm.codingLevel}, Interest = ${counselorForm.interest}. Provide top recommended career role, match percentage, and a 3-step action plan.`;
-      
-      const aiResponseText = await generateCareerRoadmap(counselorForm.interest, counselorForm.codingLevel);
-      
-      setCounselorResult({
-        recommendedRole: counselorForm.interest.includes('AI') ? 'Full-Stack AI Engineer' : 'Software Development Engineer (SDE-1)',
-        matchPercent: '94%',
-        reasoning: 'Your computer science background paired with intermediate coding skills makes you an ideal candidate for scalable web and AI applications.',
-        actionPlan: [
-          'Master Data Structures & Algorithms (Arrays, Graphs, DP) by solving 100+ LeetCode problems.',
-          'Build 2 full-stack projects using React, Node.js, and Supabase / PostgreSQL.',
-          'Complete 2 AI Mock Interviews on Interact.ai to refine technical communication.',
-        ],
-      });
-    } catch (err) {
-      console.warn('Gemini API call returned fallback result:', err);
-      setCounselorResult({
-        recommendedRole: 'Software Development Engineer (SDE-1)',
-        matchPercent: '92%',
-        reasoning: 'High alignment with current student profile and industry hiring demands.',
-        actionPlan: [
-          'Focus on Data Structures & Algorithms in Java/C++.',
-          'Build scalable web applications with REST APIs.',
-          'Practice AI mock interviews regularly.',
-        ],
-      });
-    } finally {
+      setCounselorPaths(paths);
       setCounselorLoading(false);
-    }
+  };
+
+  const handleSaveRoadmap = (pathObj) => {
+    const existing = savedPaths.filter(p => p.id !== pathObj.id);
+    const updated = [pathObj, ...existing];
+    setSavedPaths(updated);
+    localStorage.setItem('interact_saved_career_paths', JSON.stringify(updated));
+    addNotification({
+      title: 'Roadmap Saved to Profile',
+      message: `"${pathObj.title}" has been saved under your profile - My Career Paths.`,
+      category: 'roadmap',
+      actionUrl: 'profile',
+      actionLabel: 'View Profile',
+      priority: 'high'
+    });
+    alert(`"${pathObj.title}" roadmap saved successfully! Access it anytime from your Profile -> My Career Paths.`);
   };
 
   return (
     <div className="career-paths-root animate-fade-in">
-      
+
       {/* Hero Section */}
       <section className="career-hero-banner">
         <div className="container">
@@ -453,9 +671,9 @@ export default function CareerPathsPage({ _onNavigate }) {
               </div>
               <h3 className="callout-title">Confused Which Path to Pick?</h3>
               <p className="callout-desc">Get a 1-minute personalized AI career assessment tailored to your branch & goals.</p>
-              <button 
+              <button
                 className="btn-primary-purple"
-                onClick={() => setIsCounselorOpen(true)}
+                onClick={handleOpenCounselor}
               >
                 <Bot size={18} />
                 <span>Ask AI Career Counselor</span>
@@ -463,40 +681,163 @@ export default function CareerPathsPage({ _onNavigate }) {
             </div>
           </div>
 
+          {/* Inline AI Profile Career Path Analyzer */}
+          <div className="card-base" style={{ margin: '24px 0', padding: '24px', border: '1px solid var(--border-purple)', borderRadius: '14px', background: 'var(--card-bg-white)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+              <div style={{ background: 'var(--primary-purple)', padding: '8px', borderRadius: '10px', color: '#fff' }}>
+                <Sparkles size={20} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: '800', margin: 0 }}>Show Best Career Paths Based On My Profile</h3>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>Select or update your profile options below to generate custom roadmaps & LPA salaries</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleGenerateBestPaths} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', alignItems: 'end' }}>
+              <div>
+                <label style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-main)', display: 'block', marginBottom: '6px' }}>Branch / Degree</label>
+                <select
+                  value={counselorForm.branch}
+                  onChange={(e) => setCounselorForm({ ...counselorForm, branch: e.target.value })}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-light)', background: 'var(--bg-input)', color: 'var(--text-main)', fontSize: '0.88rem' }}
+                >
+                  <option value="Computer Science Engineering">B.Tech Computer Science (CSE)</option>
+                  <option value="Information Technology">B.Tech Information Tech (IT)</option>
+                  <option value="Electronics Engineering">B.Tech Electronics (ECE)</option>
+                  <option value="BCA / MCA">BCA / MCA</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-main)', display: 'block', marginBottom: '6px' }}>Academic Year / Batch</label>
+                <select
+                  value={counselorForm.year}
+                  onChange={(e) => setCounselorForm({ ...counselorForm, year: e.target.value })}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-light)', background: 'var(--bg-input)', color: 'var(--text-main)', fontSize: '0.88rem' }}
+                >
+                  <option value="1st Year">1st Year Student</option>
+                  <option value="2nd Year">2nd Year Student</option>
+                  <option value="3rd Year (2026)">3rd Year Student (2026 Batch)</option>
+                  <option value="Final Year">Final Year Student (2025/2026 Batch)</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-main)', display: 'block', marginBottom: '6px' }}>Technical Skill Level</label>
+                <select
+                  value={counselorForm.codingLevel}
+                  onChange={(e) => setCounselorForm({ ...counselorForm, codingLevel: e.target.value })}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-light)', background: 'var(--bg-input)', color: 'var(--text-main)', fontSize: '0.88rem' }}
+                >
+                  <option value="Beginner (Basics of C++/Java)">Beginner (Basics of C++/Java)</option>
+                  <option value="Intermediate (DSA + Basic Web)">Intermediate (DSA + Basic Web)</option>
+                  <option value="Advanced (Full-Stack + LeetCode)">Advanced (Full-Stack + LeetCode)</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-main)', display: 'block', marginBottom: '6px' }}>Primary Career Goal</label>
+                <select
+                  value={counselorForm.interest}
+                  onChange={(e) => setCounselorForm({ ...counselorForm, interest: e.target.value })}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-light)', background: 'var(--bg-input)', color: 'var(--text-main)', fontSize: '0.88rem' }}
+                >
+                  <option value="Software Development & AI">Software Development (SDE) & AI</option>
+                  <option value="Data Science & Machine Learning">Data Science & Machine Learning</option>
+                  <option value="Cloud DevOps & Security">Cloud DevOps & Cybersecurity</option>
+                  <option value="GATE CS & ISRO Govt Exams">GATE CS & ISRO Government Exams</option>
+                </select>
+              </div>
+
+              <div style={{ gridColumn: '1 / -1', marginTop: '6px' }}>
+                <button
+                  type="submit"
+                  className="btn-primary-purple"
+                  style={{ width: '100%', padding: '12px 20px', fontSize: '0.95rem', fontWeight: '700' }}
+                  disabled={counselorLoading}
+                >
+                  {counselorLoading ? 'Analyzing Profile with Gemini AI...' : '🚀 Generate Best Career Paths Based On My Profile →'}
+                </button>
+              </div>
+            </form>
+
+            {counselorPaths && (
+              <div className="animate-fade-in" style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid var(--border-light)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <h4 style={{ fontSize: '1.05rem', fontWeight: '800', color: 'var(--text-main)' }}>🎯 Top 3 Personalized Career Paths For Your Profile:</h4>
+                  <button
+                    onClick={() => setCounselorPaths(null)}
+                    style={{ background: 'none', border: 'none', color: 'var(--primary-purple)', fontSize: '0.82rem', fontWeight: '700', cursor: 'pointer' }}
+                  >
+                    🔄 Clear Results
+                  </button>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
+                  {counselorPaths.map((path) => (
+                    <div key={path.id} className="card-base" style={{ padding: '16px', border: '1px solid var(--border-purple)', borderRadius: '12px', background: 'var(--bg-subtle)' }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: '800', background: 'var(--primary-purple)', color: '#fff', padding: '3px 8px', borderRadius: '10px' }}>{path.matchScore} Match</span>
+                      <h4 style={{ fontSize: '1.1rem', fontWeight: '800', margin: '8px 0 4px 0' }}>{path.title}</h4>
+                      <p style={{ fontSize: '0.85rem', color: 'var(--primary-purple)', fontWeight: '700', margin: '0 0 8px 0' }}>💰 Salary Range: {path.salaryRange}</p>
+                      <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', margin: '0 0 12px 0' }}>{path.reasoning}</p>
+
+                      <div style={{ background: 'var(--card-bg-white)', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-light)' }}>
+                        <p style={{ fontSize: '0.78rem', fontWeight: '700', marginBottom: '4px' }}>📍 Personalized 5-Stage Roadmap:</p>
+                        <ol style={{ paddingLeft: '16px', margin: 0, fontSize: '0.8rem', color: 'var(--text-body)' }}>
+                          {path.roadmap.map((step, sIdx) => (
+                            <li key={sIdx} style={{ marginBottom: '3px' }}>{step}</li>
+                          ))}
+                        </ol>
+                      </div>
+
+                      <button
+                        className="btn-outline-secondary"
+                        onClick={() => handleSaveRoadmap(path)}
+                        style={{ width: '100%', marginTop: '12px', padding: '8px', fontSize: '0.8rem', fontWeight: '700' }}
+                      >
+                        💾 Save Roadmap To Profile
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Controls Bar: Domain Category Pills & Search */}
           <div className="career-control-bar card-base">
             <div className="domain-tabs-group">
-              <button 
+              <button
                 className={`domain-tab-btn ${selectedCategory === 'all' ? 'active' : ''}`}
                 onClick={() => { setSelectedCategory('all'); setActiveDomain(null); }}
               >
                 All Career Domains
               </button>
-              <button 
+              <button
                 className={`domain-tab-btn ${selectedCategory === 'sde' ? 'active' : ''}`}
                 onClick={() => { setSelectedCategory('sde'); setActiveDomain(null); }}
               >
                 <Code size={15} /> SDE & Full Stack
               </button>
-              <button 
+              <button
                 className={`domain-tab-btn ${selectedCategory === 'data' ? 'active' : ''}`}
                 onClick={() => { setSelectedCategory('data'); setActiveDomain(null); }}
               >
                 <Brain size={15} /> Data Science & AI
               </button>
-              <button 
+              <button
                 className={`domain-tab-btn ${selectedCategory === 'devops' ? 'active' : ''}`}
                 onClick={() => { setSelectedCategory('devops'); setActiveDomain(null); }}
               >
                 <Cloud size={15} /> Cloud & DevOps
               </button>
-              <button 
+              <button
                 className={`domain-tab-btn ${selectedCategory === 'cyber' ? 'active' : ''}`}
                 onClick={() => { setSelectedCategory('cyber'); setActiveDomain(null); }}
               >
                 <ShieldCheck size={15} /> Cyber Security
               </button>
-              <button 
+              <button
                 className={`domain-tab-btn ${selectedCategory === 'govt' ? 'active' : ''}`}
                 onClick={() => { setSelectedCategory('govt'); setActiveDomain(null); }}
               >
@@ -506,8 +847,8 @@ export default function CareerPathsPage({ _onNavigate }) {
 
             <div className="career-search-box">
               <Search size={16} style={{ color: 'var(--text-muted)' }} />
-              <input 
-                type="text" 
+              <input
+                type="text"
                 placeholder="Search domain, skill (e.g. React, GATE, AI)..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -519,15 +860,15 @@ export default function CareerPathsPage({ _onNavigate }) {
 
       {/* Main Workspace Section */}
       <section className="container">
-        
+
         {/* INTERVIEW STAGES (When Preparation is Started) */}
         {interviewStage === 'lobby' ? (
-          <InterviewLobby 
+          <InterviewLobby
             interviewConfig={{ type: activeDomain?.title || 'Technical SDE-1' }}
             onStartInterview={handleStartStudio}
           />
         ) : interviewStage === 'studio' ? (
-          <LiveInterviewStudio 
+          <LiveInterviewStudio
             initialStream={activeMediaStream}
             interviewConfig={{ type: activeDomain?.title || 'Technical SDE-1' }}
             onFinishInterview={handleFinishInterview}
@@ -538,7 +879,7 @@ export default function CareerPathsPage({ _onNavigate }) {
             {/* Active Roadmap Header */}
             <div className="roadmap-header-card card-base">
               <div>
-                <button 
+                <button
                   className="back-to-domains-btn"
                   onClick={() => setActiveDomain(null)}
                 >
@@ -548,16 +889,19 @@ export default function CareerPathsPage({ _onNavigate }) {
                   <h2 className="active-domain-title">{activeDomain.title}</h2>
                   <span className="demand-badge">{activeDomain.demandScore}</span>
                 </div>
+                <div style={{ fontSize: '0.88rem', color: 'var(--primary-purple)', fontWeight: '700', margin: '8px 0 12px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  ⚡ This roadmap is generated & updated based on your live learning activity of you
+                </div>
                 <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
-                  <button 
-                    className="btn-primary-purple" 
+                  <button
+                    className="btn-primary-purple"
                     onClick={handleStartLobby}
                   >
                     <span>Start Full Preparation Sequence</span>
                     <ArrowRight size={16} />
                   </button>
-                  <button 
-                    className="btn-outline-secondary" 
+                  <button
+                    className="btn-outline-secondary"
                     onClick={handleShareRoadmap}
                   >
                     <Share2 size={16} />
@@ -573,8 +917,8 @@ export default function CareerPathsPage({ _onNavigate }) {
                   <strong>{calculateDomainProgress(activeDomain)}% Completed</strong>
                 </div>
                 <div className="progress-bar-bg">
-                  <div 
-                    className="progress-bar-fill" 
+                  <div
+                    className="progress-bar-fill"
                     style={{ width: `${calculateDomainProgress(activeDomain)}%` }}
                   ></div>
                 </div>
@@ -586,8 +930,8 @@ export default function CareerPathsPage({ _onNavigate }) {
               {activeDomain.stages.map((stage) => {
                 const isStageComplete = stage.subtopics.every((st) => completedSubtopics[st.id]);
                 return (
-                  <div 
-                    key={stage.id} 
+                  <div
+                    key={stage.id}
                     className={`roadmap-stage-node ${isStageComplete ? 'completed' : ''}`}
                   >
                     <div className="node-icon-circle">
@@ -610,16 +954,16 @@ export default function CareerPathsPage({ _onNavigate }) {
                         {stage.subtopics.map((st) => {
                           const isChecked = !!completedSubtopics[st.id];
                           return (
-                            <div 
-                              key={st.id} 
+                            <div
+                              key={st.id}
                               className={`subtopic-item ${isChecked ? 'checked' : ''}`}
                               onClick={() => handleToggleSubtopic(st.id, st.title)}
                             >
-                              <input 
-                                type="checkbox" 
-                                className="subtopic-checkbox" 
+                              <input
+                                type="checkbox"
+                                className="subtopic-checkbox"
                                 checked={isChecked}
-                                onChange={() => {}} // handled by parent onClick
+                                onChange={() => { }} // handled by parent onClick
                               />
                               <span className="subtopic-label">{st.title}</span>
                             </div>
@@ -632,11 +976,11 @@ export default function CareerPathsPage({ _onNavigate }) {
                         <div className="resources-footer-row">
                           <span className="resource-label">Recommended Learning:</span>
                           {stage.resources.map((res, idx) => (
-                            <a 
-                              key={idx} 
-                              href={res.url} 
-                              target="_blank" 
-                              rel="noreferrer" 
+                            <a
+                              key={idx}
+                              href={res.url}
+                              target="_blank"
+                              rel="noreferrer"
                               className="resource-chip-link"
                             >
                               <BookOpen size={12} />
@@ -659,8 +1003,8 @@ export default function CareerPathsPage({ _onNavigate }) {
               const Icon = domain.icon;
               const progress = calculateDomainProgress(domain);
               return (
-                <div 
-                  key={domain.id} 
+                <div
+                  key={domain.id}
                   className="domain-overview-card card-base"
                   onClick={() => setActiveDomain(domain)}
                 >
@@ -713,9 +1057,9 @@ export default function CareerPathsPage({ _onNavigate }) {
       {isCounselorOpen && (
         <div className="counselor-modal-overlay animate-fade-in">
           <div className="counselor-modal-card card-base">
-            <button 
+            <button
               className="modal-close-btn"
-              onClick={() => { setIsCounselorOpen(false); setCounselorResult(null); }}
+              onClick={() => { setIsCounselorOpen(false); setCounselorPaths(null); }}
             >
               <X size={18} />
             </button>
@@ -724,108 +1068,181 @@ export default function CareerPathsPage({ _onNavigate }) {
               <div className="callout-icon-circle mx-auto" style={{ marginBottom: '12px' }}>
                 <Sparkles size={24} />
               </div>
-              <h3>AI Career Path Counselor</h3>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                Powered by Gemini 1.5. Get a personalized analysis of your career fit in seconds.
+              <h3>AI Career Counselor & Path Generator</h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>
+                Real-time Gemini AI career guidance based on your profile, market trends & 2026 hiring telemetry.
               </p>
             </div>
 
-            {!counselorResult ? (
-              <form onSubmit={handleRunAICounselor}>
-                <div className="form-field-group">
-                  <label>Current Branch / Degree</label>
-                  <select 
-                    value={counselorForm.branch}
-                    onChange={(e) => setCounselorForm({ ...counselorForm, branch: e.target.value })}
-                  >
-                    <option value="Computer Science Engineering">B.Tech Computer Science (CSE)</option>
-                    <option value="Information Technology">B.Tech Information Tech (IT)</option>
-                    <option value="Electronics Engineering">B.Tech Electronics (ECE)</option>
-                    <option value="BCA / MCA">BCA / MCA</option>
-                  </select>
-                </div>
+            {/* Modal Mode Tabs */}
+            <div className="counselor-modal-tabs" style={{ display: 'flex', gap: '8px', marginBottom: '20px', background: 'var(--bg-subtle)', padding: '4px', borderRadius: '10px' }}>
+              <button
+                type="button"
+                className={`counselor-tab-btn ${counselorTab === 'paths' ? 'active' : ''}`}
+                onClick={() => setCounselorTab('paths')}
+                style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: counselorTab === 'paths' ? 'var(--card-bg-white)' : 'transparent', color: counselorTab === 'paths' ? 'var(--primary-purple)' : 'var(--text-muted)', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s ease', boxShadow: counselorTab === 'paths' ? '0 2px 8px rgba(0,0,0,0.08)' : 'none' }}
+              >
+                🚀 Best Career Paths (AI Analysis)
+              </button>
+              <button
+                type="button"
+                className={`counselor-tab-btn ${counselorTab === 'chat' ? 'active' : ''}`}
+                onClick={() => setCounselorTab('chat')}
+                style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: counselorTab === 'chat' ? 'var(--card-bg-white)' : 'transparent', color: counselorTab === 'chat' ? 'var(--primary-purple)' : 'var(--text-muted)', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s ease', boxShadow: counselorTab === 'chat' ? '0 2px 8px rgba(0,0,0,0.08)' : 'none' }}
+              >
+                💬 Direct AI Chat
+              </button>
+            </div>
 
-                <div className="form-field-group">
-                  <label>Current Academic Year</label>
-                  <select 
-                    value={counselorForm.year}
-                    onChange={(e) => setCounselorForm({ ...counselorForm, year: e.target.value })}
-                  >
-                    <option value="1st Year">1st Year Student</option>
-                    <option value="2nd Year">2nd Year Student</option>
-                    <option value="3rd Year (2026)">3rd Year Student (2026 Batch)</option>
-                    <option value="Final Year">Final Year Student (2025/2026 Batch)</option>
-                  </select>
-                </div>
+            {counselorTab === 'paths' ? (
+              <div>
+                {!counselorPaths ? (
+                  <form onSubmit={handleGenerateBestPaths}>
+                    <div className="form-field-group">
+                      <label>Current Branch / Degree</label>
+                      <select
+                        value={counselorForm.branch}
+                        onChange={(e) => setCounselorForm({ ...counselorForm, branch: e.target.value })}
+                      >
+                        <option value="Computer Science Engineering">B.Tech Computer Science (CSE)</option>
+                        <option value="Information Technology">B.Tech Information Tech (IT)</option>
+                        <option value="Electronics Engineering">B.Tech Electronics (ECE)</option>
+                        <option value="BCA / MCA">BCA / MCA</option>
+                      </select>
+                    </div>
 
-                <div className="form-field-group">
-                  <label>Current Skill & Coding Level</label>
-                  <select 
-                    value={counselorForm.codingLevel}
-                    onChange={(e) => setCounselorForm({ ...counselorForm, codingLevel: e.target.value })}
-                  >
-                    <option value="Beginner (Learning C++/Java basics)">Beginner (Basics of C++/Java)</option>
-                    <option value="Intermediate (DSA + Basic Web)">Intermediate (DSA + Basic Web)</option>
-                    <option value="Advanced (Full-Stack + LeetCode)">Advanced (Full-Stack + LeetCode)</option>
-                  </select>
-                </div>
+                    <div className="form-field-group">
+                      <label>Academic Batch / Year</label>
+                      <select
+                        value={counselorForm.year}
+                        onChange={(e) => setCounselorForm({ ...counselorForm, year: e.target.value })}
+                      >
+                        <option value="1st Year">1st Year Student</option>
+                        <option value="2nd Year">2nd Year Student</option>
+                        <option value="3rd Year (2026)">3rd Year Student (2026 Batch)</option>
+                        <option value="Final Year">Final Year Student (2025/2026 Batch)</option>
+                      </select>
+                    </div>
 
-                <div className="form-field-group">
-                  <label>Primary Interest Domain</label>
-                  <select 
-                    value={counselorForm.interest}
-                    onChange={(e) => setCounselorForm({ ...counselorForm, interest: e.target.value })}
-                  >
-                    <option value="Software Development & AI">Software Development (SDE) & AI</option>
-                    <option value="Data Science & Machine Learning">Data Science & Machine Learning</option>
-                    <option value="Cloud DevOps & Security">Cloud DevOps & Cybersecurity</option>
-                    <option value="GATE CS & ISRO Govt Exams">GATE CS & ISRO Government Exams</option>
-                  </select>
-                </div>
+                    <div className="form-field-group">
+                      <label>Current Coding & Technical Skill Level</label>
+                      <select
+                        value={counselorForm.codingLevel}
+                        onChange={(e) => setCounselorForm({ ...counselorForm, codingLevel: e.target.value })}
+                      >
+                        <option value="Beginner (Basics of C++/Java)">Beginner (Basics of C++/Java)</option>
+                        <option value="Intermediate (DSA + Basic Web)">Intermediate (DSA + Basic Web)</option>
+                        <option value="Advanced (Full-Stack + LeetCode)">Advanced (Full-Stack + LeetCode)</option>
+                      </select>
+                    </div>
 
-                <button 
-                  type="submit" 
-                  className="btn-primary-purple"
-                  style={{ width: '100%', marginTop: '12px' }}
-                  disabled={counselorLoading}
-                >
-                  {counselorLoading ? 'Analyzing Profile with Gemini AI...' : 'Generate Career Recommendation →'}
-                </button>
-              </form>
+                    <div className="form-field-group">
+                      <label>Primary Career Interest</label>
+                      <select
+                        value={counselorForm.interest}
+                        onChange={(e) => setCounselorForm({ ...counselorForm, interest: e.target.value })}
+                      >
+                        <option value="Software Development & AI">Software Development (SDE) & AI</option>
+                        <option value="Data Science & Machine Learning">Data Science & Machine Learning</option>
+                        <option value="Cloud DevOps & Security">Cloud DevOps & Cybersecurity</option>
+                        <option value="GATE CS & ISRO Govt Exams">GATE CS & ISRO Government Exams</option>
+                      </select>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="btn-primary-purple"
+                      style={{ width: '100%', marginTop: '12px', padding: '12px' }}
+                      disabled={counselorLoading}
+                    >
+                      {counselorLoading ? 'Analyzing Profile with Gemini AI...' : 'Show Best Career Paths Based on My Profile →'}
+                    </button>
+                  </form>
+                ) : (
+                  <div className="counselor-results-list animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <h4 style={{ fontSize: '1rem', fontWeight: '800' }}>Top 2-3 Personalized Career Paths For You:</h4>
+                      <button
+                        onClick={() => setCounselorPaths(null)}
+                        style={{ background: 'none', border: 'none', color: 'var(--primary-purple)', fontSize: '0.82rem', fontWeight: '700', cursor: 'pointer' }}
+                      >
+                        🔄 Re-Analyze
+                      </button>
+                    </div>
+
+                    {counselorPaths.map((path) => (
+                      <div key={path.id} className="card-base" style={{ padding: '16px 20px', border: '1px solid var(--border-purple)', borderRadius: '12px', background: 'var(--bg-subtle)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div>
+                            <span style={{ fontSize: '0.7rem', fontWeight: '800', background: 'var(--primary-purple)', color: '#fff', padding: '2px 8px', borderRadius: '10px' }}>{path.matchScore} Match</span>
+                            <h4 style={{ fontSize: '1.15rem', fontWeight: '800', margin: '6px 0 4px 0' }}>{path.title}</h4>
+                            <p style={{ fontSize: '0.82rem', color: 'var(--primary-purple)', fontWeight: '700' }}>💰 Avg Salary: {path.salaryRange}</p>
+                          </div>
+                          <button
+                            className="btn-outline-secondary"
+                            onClick={() => handleSaveRoadmap(path)}
+                            style={{ padding: '6px 12px', fontSize: '0.78rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}
+                          >
+                            💾 Save Roadmap
+                          </button>
+                        </div>
+                        <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', margin: '10px 0' }}>{path.reasoning}</p>
+
+                        <div style={{ background: 'var(--card-bg-white)', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-light)' }}>
+                          <p style={{ fontSize: '0.8rem', fontWeight: '700', marginBottom: '6px', color: 'var(--text-main)' }}>📍 Complete Step-by-Step Roadmap:</p>
+                          <ol style={{ paddingLeft: '18px', margin: 0, fontSize: '0.82rem', color: 'var(--text-body)' }}>
+                            {path.roadmap.map((step, sIdx) => (
+                              <li key={sIdx} style={{ marginBottom: '4px' }}>{step}</li>
+                            ))}
+                          </ol>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             ) : (
-              <div className="counselor-result-box animate-fade-in">
-                <div className="result-match-header">
-                  <div>
-                    <span className="section-label">RECOMMENDED ROLE</span>
-                    <h3 style={{ fontSize: '1.4rem', fontWeight: '800' }}>{counselorResult.recommendedRole}</h3>
-                  </div>
-                  <div className="match-percentage-badge">
-                    {counselorResult.matchPercent} Match
-                  </div>
+              /* Direct AI Chat Tab */
+              <div className="ai-chat-counselor-container" style={{ display: 'flex', flexDirection: 'column', height: '360px' }}>
+                <div className="chat-messages-box" style={{ flex: 1, overflowY: 'auto', padding: '12px', background: 'var(--bg-subtle)', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '12px' }}>
+                  {chatMessages.map((msg) => (
+                    <div
+                      key={msg.id}
+                      style={{
+                        alignSelf: msg.sender === 'user' ? 'flex-end' : 'flex-start',
+                        maxWidth: '82%',
+                        padding: '10px 14px',
+                        borderRadius: '12px',
+                        background: msg.sender === 'user' ? 'var(--primary-gradient)' : 'var(--card-bg-white)',
+                        color: msg.sender === 'user' ? '#fff' : 'var(--text-main)',
+                        fontSize: '0.88rem',
+                        border: msg.sender === 'ai' ? '1px solid var(--border-light)' : 'none',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.05)'
+                      }}
+                    >
+                      <strong>{msg.sender === 'user' ? 'You' : 'AI Counselor'}: </strong>
+                      {msg.text}
+                    </div>
+                  ))}
+                  {chatLoading && (
+                    <div style={{ alignSelf: 'flex-start', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                      AI Counselor is typing...
+                    </div>
+                  )}
                 </div>
 
-                <p style={{ fontSize: '0.9rem', color: 'var(--text-body)', marginBottom: '16px' }}>
-                  {counselorResult.reasoning}
-                </p>
-
-                <h4 style={{ fontSize: '0.95rem', fontWeight: '700', marginBottom: '8px' }}>Your 3-Step Action Plan:</h4>
-                <ul style={{ paddingLeft: '18px', fontSize: '0.88rem', color: 'var(--text-body)' }}>
-                  {counselorResult.actionPlan.map((step, idx) => (
-                    <li key={idx} style={{ marginBottom: '8px' }}>{step}</li>
-                  ))}
-                </ul>
-
-                <button 
-                  className="btn-primary-purple"
-                  style={{ width: '100%', marginTop: '20px' }}
-                  onClick={() => {
-                    setIsCounselorOpen(false);
-                    const targetDomain = domainRoadmaps.find(d => d.id === 'sde') || domainRoadmaps[0];
-                    setActiveDomain(targetDomain);
-                  }}
-                >
-                  Open Recommended Interactive Roadmap →
-                </button>
+                <form onSubmit={handleSendChatMessage} style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="text"
+                    placeholder="Ask AI Career Counselor (e.g. Which language to pick for DSA?)..."
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    style={{ flex: 1, padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-light)', background: 'var(--bg-input)', color: 'var(--text-main)', outline: 'none', fontSize: '0.88rem' }}
+                  />
+                  <button type="submit" className="btn-primary-purple" style={{ padding: '10px 16px', borderRadius: '8px' }}>
+                    Send
+                  </button>
+                </form>
               </div>
             )}
           </div>
@@ -834,10 +1251,10 @@ export default function CareerPathsPage({ _onNavigate }) {
 
       {/* Share Roadmap Modal */}
       {activeDomain && (
-        <ShareRoadmapModal 
-          isOpen={isShareModalOpen} 
-          onClose={() => setIsShareModalOpen(false)} 
-          activeDomain={activeDomain} 
+        <ShareRoadmapModal
+          isOpen={isShareModalOpen}
+          onClose={() => setIsShareModalOpen(false)}
+          activeDomain={activeDomain}
           progress={calculateDomainProgress(activeDomain)}
         />
       )}

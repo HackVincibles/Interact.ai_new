@@ -45,15 +45,25 @@ export default function InternshipsPage({ currentUser, onNavigate }) {
     fetchInternships();
   }, [searchQuery]);
 
-  const handleScanNewItem = (newJob) => {
-    if (newJob && newJob.category === 'internship') {
-      setInternshipsCatalog((prev) => [newJob, ...prev]);
+  const handleScanNewItem = (scannedItems) => {
+    if (Array.isArray(scannedItems) && scannedItems.length > 0) {
+      setInternshipsCatalog((prev) => [...scannedItems, ...prev]);
+    } else if (scannedItems && typeof scannedItems === 'object') {
+      setInternshipsCatalog((prev) => [scannedItems, ...prev]);
     } else {
       fetchInternships();
     }
   };
 
   const filteredInternships = internshipsCatalog.filter((item) => {
+    // Requirement 23: Strictly show ONLY internships or apprenticeships (no full-time jobs)
+    const isInternshipOrApprenticeship = 
+      item.category === 'internship' || 
+      item.title?.toLowerCase().includes('intern') || 
+      item.title?.toLowerCase().includes('apprentice');
+    
+    if (!isInternshipOrApprenticeship) return false;
+
     if (stipendFilter === 'high') {
       return item.stipend?.includes('1,') || item.stipend?.includes('80') || item.stipend?.includes('90');
     }
@@ -137,10 +147,23 @@ export default function InternshipsPage({ currentUser, onNavigate }) {
               <p>No internships found matching your criteria. Try running the Web Scanner!</p>
             </div>
           ) : (
-            filteredInternships.map((item) => (
-              <div key={item.id} className="internship-item-card card-base">
-                
-                <div className="card-top-info">
+            filteredInternships.map((item) => {
+              const isScanned = item.isNewlyScanned || item.posted?.includes('TinyFish') || item.id?.startsWith('scanned_');
+              return (
+                <div 
+                  key={item.id} 
+                  className="internship-item-card card-base"
+                  style={isScanned ? { border: '2px solid #f97316', boxShadow: '0 0 16px rgba(249, 115, 22, 0.35)' } : {}}
+                >
+                  {isScanned && (
+                    <div style={{ marginBottom: '10px' }}>
+                      <span style={{ background: '#f97316', color: '#ffffff', fontSize: '0.75rem', fontWeight: '800', padding: '4px 10px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        🔥 NEWLY SCANNED
+                      </span>
+                    </div>
+                  )}
+                  
+                  <div className="card-top-info">
                   <div className="company-logo-box">
                     <img src={item.logo} alt={item.company} />
                   </div>
@@ -182,7 +205,8 @@ export default function InternshipsPage({ currentUser, onNavigate }) {
                 </div>
 
               </div>
-            ))
+            );
+          })
           )}
         </div>
       </div>

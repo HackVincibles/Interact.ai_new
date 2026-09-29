@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Compass, 
   BookOpen, 
@@ -42,6 +42,22 @@ export default function Navbar({
   const [notificationOpen, setNotificationOpen] = useState(false);
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const [searchQuery, setSearchQuery] = useState('');
+  const userMenuRef = useRef(null);
+
+  // Click outside listener to close user profile dropdown (Item 7)
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setUserDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, []);
 
   const navItems = [
     { id: 'home', label: 'Home', icon: Sparkles },
@@ -50,12 +66,24 @@ export default function Navbar({
     { id: 'internships', label: 'Internships', icon: Briefcase },
     { id: 'jobs', label: 'Jobs', icon: Briefcase },
     { id: 'mock-interviews', label: 'Mock Interviews', icon: UserCheck, badge: 'AI' },
-    { id: 'resources', label: 'Resources', icon: FileText },
+    { id: 'resources', label: 'Resume', icon: FileText },
   ];
 
-  const firstName = currentUser?.fullName 
-    ? currentUser.fullName.split(' ')[0] 
-    : (currentUser?.email ? currentUser.email.split('@')[0] : 'Candidate');
+  const getCleanFirstName = () => {
+    const rawName = currentUser?.fullName || currentUser?.displayName || currentUser?.name;
+    if (rawName && rawName.trim().toLowerCase() !== 'google') {
+      const parts = rawName.trim().split(' ');
+      if (parts[0].toLowerCase() === 'google' && parts[1]) return parts[1];
+      if (parts[0].toLowerCase() !== 'google') return parts[0];
+    }
+    if (currentUser?.email) {
+      const emailPrefix = currentUser.email.split('@')[0];
+      return emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1);
+    }
+    return 'User';
+  };
+
+  const firstName = getCleanFirstName();
 
   return (
     <header className="navbar-header">
@@ -187,7 +215,7 @@ export default function Navbar({
                 )}
               </div>
 
-              <div className="user-menu-wrapper">
+              <div className="user-menu-wrapper" ref={userMenuRef}>
                 <button 
                   className="user-profile-btn"
                   onClick={() => setUserDropdownOpen(!userDropdownOpen)}
@@ -198,7 +226,7 @@ export default function Navbar({
                       alt={currentUser?.fullName || "Student Profile"} 
                     />
                   </div>
-                  <span className="user-name">Hi, {firstName}</span>
+                  <span className="user-name">Hii {firstName}</span>
                   <ChevronDown size={14} className={`chevron ${userDropdownOpen ? 'open' : ''}`} />
                 </button>
 

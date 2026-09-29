@@ -109,6 +109,12 @@ export default function LeaderboardModal({ isOpen, onClose, currentUser, onSelec
           </div>
         </div>
 
+        {(!currentUser?.collegeName || currentUser?.collegeRank === 'Unranked' || currentUser?.globalRank === 'Unranked') && (
+          <p className="unranked-notice-text" style={{ color: '#f87171', fontSize: '0.88rem', textAlign: 'center', margin: '12px 0 4px 0', fontWeight: '500' }}>
+            fill college details and complete profile to get ranked.
+          </p>
+        )}
+
         {/* Leaderboard Table */}
         <div className="table-wrapper">
           <table className="leaderboard-table">

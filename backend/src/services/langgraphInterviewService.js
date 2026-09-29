@@ -12,7 +12,15 @@ export class LangGraphInterviewService {
     
     let planPrompt = '';
     
-    if (practiceMode === 'targeted') {
+    if (interviewType?.toLowerCase().includes('resume') || (domain && domain.toLowerCase().includes('resume'))) {
+      planPrompt = `
+You are a Senior Technical Recruiter conducting a RESUME-BASED INTERVIEW.
+Candidate Resume Content: "${(resumeText || '').slice(0, 3000)}"
+
+STRICT REQUIREMENT: All questions MUST BE STRICTLY AND DIRECTLY BASED ON THE CANDIDATE'S RESUME (projects, technologies, experience, or skills listed in the text above). Do NOT ask generic unrelated questions. Ask specifically about the architecture, tools, and decisions mentioned in their resume.
+Return ONLY a JSON array of 3 strings: ["Resume Question 1...", "Resume Question 2...", "Resume Question 3..."].
+`;
+    } else if (practiceMode === 'targeted') {
       planPrompt = `
 You are an expert AI Interviewer conducting a targeted PRACTICE session for the '${roundType}' round.
 Topic/Domain: '${domain || roundType}'.
@@ -147,6 +155,90 @@ Return JSON format:
       isCompleted,
       nextQuestion: isCompleted ? null : questions[nextIndex],
       nextQuestionNumber: nextIndex + 1,
+    };
+  }
+
+  /**
+   * Generates a real-time adaptive conversational turn response & next question based on interview mode, difficulty & candidate response.
+   */
+  static async generateNextAdaptiveQuestion({ sessionId, candidateAnswer, transcriptHistory = [], interviewConfig = {}, isTimeOver = false }) {
+    const {
+      mode = 'role_jd',
+      targetRole = 'Software Development Engineer',
+      jobDescription = '',
+      resumeText = '',
+      difficulty = 'Medium',
+      roundType = 'Technical'
+    } = interviewConfig;
+
+    if (isTimeOver) {
+      return {
+        aiMessage: "The time is over. Thank you for this wonderful conversation! You can see your comprehensive interview report after the interview ends.",
+        isComplete: true
+      };
+    }
+
+    const transcriptPrompt = transcriptHistory.slice(-6).map(t => `${t.sender === 'interviewer' ? 'Interviewer' : 'Candidate'}: ${t.text}`).join('\n');
+
+    const prompt = `
+You are an expert AI Senior Interviewer conducting a LIVE conversational mock interview.
+MODE: ${mode} (resume / role_jd / hr / cs_core)
+TARGET ROLE: "${targetRole}"
+DIFFICULTY: "${difficulty}" (Easy / Medium / FAANG Level Hard)
+TARGET JD: "${(jobDescription || '').slice(0, 600)}"
+CANDIDATE RESUME: "${(resumeText || '').slice(0, 800)}"
+
+RECENT CONVERSATION TRANSCRIPT:
+${transcriptPrompt || '(Candidate just started)'}
+
+CANDIDATE LATEST ANSWER / RESPONSE:
+"${candidateAnswer || 'Hello, I am ready for the interview.'}"
+
+INSTRUCTIONS:
+1. Provide a short 1-sentence natural acknowledgement of the candidate's answer/intro.
+2. Ask the NEXT logical, adaptive interview question based on their answer, difficulty level (${difficulty}), and mode (${mode}).
+- If mode is 'resume', ask specific technical questions about projects, stack, or experience mentioned in candidate resume.
+- If mode is 'cs_core', ask core CS questions (OS, DBMS, Computer Networks, OOPs, DSA).
+- If mode is 'hr', ask behavioral or situational questions.
+- If difficulty is 'FAANG Level Hard', ask deep architectural, edge-case, or system scaling questions.
+
+Return JSON format strictly:
+{
+  "acknowledgment": "Good explanation on asynchronous queues and database locking.",
+  "nextQuestion": "How would you handle Redis cache degradation if primary node drops?",
+  "fullAiSpeech": "Good explanation on asynchronous queues and database locking. Next, how would you handle Redis cache degradation if primary node drops?"
+}
+`;
+
+    try {
+      const result = await geminiFlash.generateContent(prompt);
+      const text = result.response.text();
+      const match = text.match(/\{[\s\S]*\}/);
+      if (match) {
+        const parsed = JSON.parse(match[0]);
+        return {
+          aiMessage: parsed.fullAiSpeech || `${parsed.acknowledgment} ${parsed.nextQuestion}`,
+          acknowledgment: parsed.acknowledgment,
+          nextQuestion: parsed.nextQuestion,
+          isComplete: false
+        };
+      }
+    } catch (err) {
+      console.warn('Adaptive AI question fallback:', err.message);
+    }
+
+    const fallbackQ = mode === 'resume'
+      ? `Could you dive deeper into the technical architecture of the primary project listed on your resume?`
+      : mode === 'cs_core'
+      ? `Can you explain the difference between process and thread synchronization, and how deadlock avoidance works?`
+      : mode === 'hr'
+      ? `Describe a situation where you faced a major technical roadblock. How did you handle it?`
+      : `How do you optimize database query execution time and indexing strategy under high concurrent load?`;
+
+    return {
+      aiMessage: `Thank you for sharing that. ${fallbackQ}`,
+      nextQuestion: fallbackQ,
+      isComplete: false
     };
   }
 
