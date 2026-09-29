@@ -218,8 +218,8 @@ export default function App() {
   return (
     <NotificationProvider>
     <div className="app-root">
-      {/* Hide Navbar during dedicated full-page auth screens */}
-      {activeTab !== 'register' && activeTab !== 'login' && (
+      {/* Hide Navbar during dedicated full-page auth screens and active interviews */}
+      {activeTab !== 'register' && activeTab !== 'login' && !isInterviewActive && (
         <Navbar 
           activeTab={activeTab} 
           onTabChange={handleTabChange}
