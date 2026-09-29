@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck, ArrowRight } from 'lucide-react';
 import './Footer.css';
 
 export default function Footer({ onTabChange, onAdminLoginClick }) {
@@ -18,56 +18,89 @@ export default function Footer({ onTabChange, onAdminLoginClick }) {
               <span className="logo-text">interact<span>.ai</span></span>
             </div>
             <p className="footer-tagline">
-              From campus to corporate with the right guidance, skills, and real hiring opportunities.
+              AI-powered interview and candidate assessment platform designed to help candidates practice, improve, and understand their interview performance.
             </p>
-            <div className="footer-meta-row">
-              <p className="footer-copyright">
-                © 2026 Interact.ai. All rights reserved.
-              </p>
-              <button 
-                className="footer-admin-link" 
-                onClick={onAdminLoginClick} 
-                title="Admin Portal Sign In"
-              >
-                <ShieldCheck size={13} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
-                Login as Admin
+            
+            <div className="footer-cta-area">
+              <h4 className="footer-cta-heading">Ready to get started?</h4>
+              <p className="footer-cta-sub">Explore Interact.ai and start practicing smarter.</p>
+              <button className="btn-primary-purple footer-cta-btn" onClick={() => onTabChange && onTabChange('register')}>
+                <span>Get Started</span>
+                <ArrowRight size={16} />
               </button>
             </div>
           </div>
 
-          {/* Quick Links */}
-          <div className="footer-col">
-            <h4 className="footer-col-title">Quick Links</h4>
-            <ul className="footer-links">
-              <li><button onClick={() => onTabChange && onTabChange('home')}>Home</button></li>
-              <li><button onClick={() => onTabChange && onTabChange('career-paths')}>Career Paths</button></li>
-              <li><button onClick={() => onTabChange && onTabChange('courses')}>Courses</button></li>
-              <li><button onClick={() => onTabChange && onTabChange('internships')}>Internships</button></li>
-              <li><button onClick={() => onTabChange && onTabChange('jobs')}>Jobs</button></li>
-              <li><button onClick={() => onTabChange && onTabChange('mock-interviews')}>Mock Interviews</button></li>
-              <li><button onClick={() => onTabChange && onTabChange('resources')}>Resources</button></li>
-            </ul>
+          <div className="footer-links-grid">
+            <div className="footer-col">
+              <h4 className="footer-col-title">Platform</h4>
+              <ul className="footer-links">
+                <li><button onClick={() => onTabChange && onTabChange('home')}>Features</button></li>
+                <li><button onClick={() => onTabChange && onTabChange('pricing')}>Pricing</button></li>
+                <li><button onClick={() => onTabChange && onTabChange('blog')}>Blog</button></li>
+              </ul>
+            </div>
+
+            <div className="footer-col">
+              <h4 className="footer-col-title">Solutions</h4>
+              <ul className="footer-links">
+                <li><button onClick={() => onTabChange && onTabChange('mock-interviews')}>AI Interviews</button></li>
+                <li><button onClick={() => onTabChange && onTabChange('mock-interviews')}>Group Discussions</button></li>
+                <li><button onClick={() => onTabChange && onTabChange('resume-studio')}>AI Coach</button></li>
+                <li><button onClick={() => onTabChange && onTabChange('career-paths')}>Candidate Assessment</button></li>
+              </ul>
+            </div>
+
+            <div className="footer-col">
+              <h4 className="footer-col-title">Company</h4>
+              <ul className="footer-links">
+                <li><button onClick={() => onTabChange && onTabChange('about')}>About</button></li>
+                <li><button onClick={() => onTabChange && onTabChange('contact')}>Contact</button></li>
+              </ul>
+            </div>
+
+            <div className="footer-col">
+              <h4 className="footer-col-title">Legal</h4>
+              <ul className="footer-links">
+                <li><button onClick={() => onTabChange && onTabChange('privacy')}>Privacy Policy</button></li>
+                <li><button onClick={() => onTabChange && onTabChange('terms')}>Terms of Use</button></li>
+                <li><button onClick={() => onTabChange && onTabChange('delete-data')}>Delete My Data</button></li>
+              </ul>
+            </div>
+
+            <div className="footer-col">
+              <h4 className="footer-col-title">Compare</h4>
+              <ul className="footer-links">
+                <li><button onClick={() => onTabChange && onTabChange('compare')}>InteractAI vs HeyMilo</button></li>
+                <li><button onClick={() => onTabChange && onTabChange('compare')}>InteractAI vs Alex (Apriora)</button></li>
+                <li><button onClick={() => onTabChange && onTabChange('compare')}>InteractAI vs Ribbon</button></li>
+                <li><button onClick={() => onTabChange && onTabChange('compare')}>InteractAI vs HireVue</button></li>
+                <li><button onClick={() => onTabChange && onTabChange('compare')}>InteractAI vs ConverzAI</button></li>
+                <li><button onClick={() => onTabChange && onTabChange('compare')}>InteractAI vs Classet</button></li>
+                <li><button onClick={() => onTabChange && onTabChange('compare')}>InteractAI vs Lightscreen</button></li>
+                <li><button onClick={() => onTabChange && onTabChange('compare')}>InteractAI vs Interviewer.AI</button></li>
+                <li><button onClick={() => onTabChange && onTabChange('compare')} className="footer-link-highlight">See all &rarr;</button></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div className="footer-bottom-bar">
+          <div className="footer-meta-row">
+            <p className="footer-copyright">
+              © 2026 Interact.ai. All rights reserved.
+            </p>
+            <button 
+              className="footer-admin-link" 
+              onClick={onAdminLoginClick} 
+              title="Admin Portal Sign In"
+            >
+              <ShieldCheck size={13} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
+              Login as Admin
+            </button>
           </div>
 
-          {/* Company */}
-          <div className="footer-col">
-            <h4 className="footer-col-title">Company</h4>
-            <ul className="footer-links">
-              <li><a href="#about">About Us</a></li>
-              <li><a href="#contact">Contact Support</a></li>
-              <li><a href="#privacy">Privacy Policy</a></li>
-              <li><a href="#terms">Terms of Service</a></li>
-              <li>
-                <button onClick={onAdminLoginClick} className="admin-portal-link">
-                  Admin Portal Login
-                </button>
-              </li>
-            </ul>
-          </div>
-
-          {/* Follow Us */}
-          <div className="footer-col">
-            <h4 className="footer-col-title">Follow Us</h4>
+          <div className="footer-social">
             <div className="social-links">
               <a href="https://linkedin.com" target="_blank" rel="noreferrer" title="LinkedIn" className="social-icon">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg>

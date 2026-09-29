@@ -17,6 +17,8 @@ import {
   TrendingUp 
 } from 'lucide-react';
 import './HomePage.css';
+import LiveOrb from '../components/LiveOrb';
+
 
 export default function HomePage({ onNavigate, onWatchDemo }) {
   const [oppTab, setOppTab] = useState('internships');
@@ -185,43 +187,14 @@ export default function HomePage({ onNavigate, onWatchDemo }) {
             </div>
           </div>
 
-          {/* Right Visual Graphic with 4 Floating Chips */}
+          {/* Right Visual Graphic */}
           <div className="home-hero-right">
-            <div className="hero-graphic-wrapper">
-              <img 
-                src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=800" 
-                alt="Student collaborating" 
-                className="hero-main-illustration"
+            <div className="landing-orb-wrapper">
+              <LiveOrb 
+                variant="custom" 
+                color="#635bff" 
+                size="100%"
               />
-
-              {/* Dynamic Floating Chips */}
-              <div className="floating-chip chip-learn">
-                <div className="chip-icon-box orange"><BookOpen size={16} /></div>
-                <div className="chip-details">
-                  <strong className="chip-title">Learn Skills</strong>
-                </div>
-              </div>
-
-              <div className="floating-chip chip-cert">
-                <div className="chip-icon-box purple"><Award size={16} /></div>
-                <div className="chip-details">
-                  <strong className="chip-title">Get Certified</strong>
-                </div>
-              </div>
-
-              <div className="floating-chip chip-intern">
-                <div className="chip-icon-box blue"><Briefcase size={16} /></div>
-                <div className="chip-details">
-                  <strong className="chip-title">Find Internships</strong>
-                </div>
-              </div>
-
-              <div className="floating-chip chip-hire">
-                <div className="chip-icon-box green"><TrendingUp size={16} /></div>
-                <div className="chip-details">
-                  <strong className="chip-title">Get Hired</strong>
-                </div>
-              </div>
             </div>
           </div>
         </div>

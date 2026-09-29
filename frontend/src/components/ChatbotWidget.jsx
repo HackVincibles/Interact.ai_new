@@ -9,7 +9,7 @@ export default function ChatbotWidget({ isHidden = false, onNavigate }) {
     {
       id: 1,
       sender: 'bot',
-      text: 'Hello! 👋 I am your Interact AI Career Assistant powered by Gemini. Ask me anything about career roadmaps, AI mock interviews, or course recommendations!',
+      text: 'Have a question? I can help you explore InteractAI and its features.',
     },
   ]);
   const [isTyping, setIsTyping] = useState(false);
@@ -30,6 +30,29 @@ export default function ChatbotWidget({ isHidden = false, onNavigate }) {
       scrollToBottom();
     }
   }, [messages, isOpen]);
+
+  // Handle Escape key to close
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape' && isOpen) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen]);
+
+  // Handle Mobile Scroll Lock
+  useEffect(() => {
+    if (isOpen && window.innerWidth <= 600) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
 
   if (isHidden) return null;
 
@@ -82,20 +105,29 @@ export default function ChatbotWidget({ isHidden = false, onNavigate }) {
   };
 
   return (
-    <div className="chatbot-widget-wrapper">
-      {!isOpen ? (
-        <button 
-          className="chatbot-trigger-btn animate-bounce-subtle"
-          onClick={() => setIsOpen(true)}
-          title="Ask AI Assistant"
-        >
-          <div className="trigger-pulse-glow"></div>
-          <Sparkles size={20} className="sparkle-chat-icon" />
-          <span className="trigger-text">Ask Interact AI</span>
-          <span className="trigger-badge-dot"></span>
-        </button>
-      ) : (
-        <div className="chatbot-window card animate-fade-in-up">
+    <>
+      {/* Viewport-level backdrop overlay */}
+      {isOpen && (
+        <div 
+          className="chatbot-backdrop"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
+      <div className={`chatbot-widget-wrapper ${isOpen ? 'is-open' : ''}`}>
+        {!isOpen ? (
+          <button 
+            className="chatbot-trigger-btn animate-bounce-subtle"
+            onClick={() => setIsOpen(true)}
+            title="Ask InteractAI"
+          >
+            <div className="trigger-pulse-glow"></div>
+            <Sparkles size={20} className="sparkle-chat-icon" />
+            <span className="trigger-text">Ask InteractAI</span>
+            <span className="trigger-badge-dot"></span>
+          </button>
+        ) : (
+          <div className="chatbot-window card">
           {/* Top Header */}
           <div className="chatbot-header">
             <div className="bot-info">
@@ -103,14 +135,14 @@ export default function ChatbotWidget({ isHidden = false, onNavigate }) {
                 <Bot size={20} color="#ffffff" />
               </div>
               <div>
-                <h4 className="bot-title">Interact AI Assistant</h4>
+                <h4 className="bot-title">Ask InteractAI</h4>
                 <p className="bot-status">
-                  <span className="status-dot-green"></span> Gemini AI Active
+                  <span className="status-dot-green"></span> AI Assistant
                 </p>
               </div>
             </div>
-            <button className="chat-close-btn" onClick={() => setIsOpen(false)} title="Minimize">
-              <Minimize2 size={16} />
+            <button className="chat-close-btn" onClick={() => setIsOpen(false)} title="Close">
+              <X size={20} />
             </button>
           </div>
 
@@ -161,16 +193,17 @@ export default function ChatbotWidget({ isHidden = false, onNavigate }) {
           <form className="chatbot-footer" onSubmit={handleFormSubmit}>
             <input 
               type="text" 
-              placeholder="Ask anything about career or interview prep..."
+              placeholder="Ask a question..."
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
             />
-            <button type="submit" className="chat-send-btn" disabled={!inputMessage.trim()}>
+            <button type="submit" className="chat-send-btn" disabled={!inputMessage.trim()} aria-label="Send">
               <Send size={15} />
             </button>
           </form>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

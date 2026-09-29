@@ -5,6 +5,7 @@ import ReminderSettings from './ReminderSettings';
 import ScheduleSummary from './ScheduleSummary';
 import { useNotifications } from '../../context/NotificationContext';
 import { X, Calendar, Clock, Bell, CheckCircle } from 'lucide-react';
+import { supabase } from '../../services/supabase';
 import './ScheduleModal.css';
 
 export default function ScheduleModal({ isOpen, onClose, config, existingSchedule, onSuccess }) {
@@ -67,7 +68,8 @@ export default function ScheduleModal({ isOpen, onClose, config, existingSchedul
     };
 
     try {
-      const token = localStorage.getItem('interact_token'); // Or however auth is managed in frontend
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
       
       const url = existingSchedule 
         ? `http://localhost:5000/api/schedules/${existingSchedule.id}`

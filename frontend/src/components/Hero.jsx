@@ -1,5 +1,6 @@
 import React from 'react';
 import { ArrowRight, Play, CheckCircle2, Award, BookOpen, Briefcase, TrendingUp, Sparkles } from 'lucide-react';
+import LiveOrb from './LiveOrb';
 import './Hero.css';
 
 export default function Hero({ onGetStarted, onWatchDemo }) {
@@ -70,56 +71,12 @@ export default function Hero({ onGetStarted, onWatchDemo }) {
         <div className="hero-visual">
           <div className="visual-background-glow"></div>
           
-          <div className="illustration-wrapper">
-            <img 
-              src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=800" 
-              alt="Students collaborating on laptop" 
-              className="hero-main-img"
+          <div className="hero-orb-wrapper">
+            <LiveOrb 
+              variant="custom" 
+              color="#635bff" 
+              size="100%"
             />
-            
-            {/* Floating Chip 1: Learn Skills */}
-            <div className="floating-chip chip-1">
-              <div className="chip-icon orange">
-                <BookOpen size={16} />
-              </div>
-              <div className="chip-text">
-                <p className="chip-title">Learn Skills</p>
-                <p className="chip-sub">5,000+ Courses</p>
-              </div>
-            </div>
-
-            {/* Floating Chip 2: Get Certified */}
-            <div className="floating-chip chip-2">
-              <div className="chip-icon purple">
-                <Award size={16} />
-              </div>
-              <div className="chip-text">
-                <p className="chip-title">Get Certified</p>
-                <p className="chip-sub">Google, IBM, NPTEL</p>
-              </div>
-            </div>
-
-            {/* Floating Chip 3: Find Internships */}
-            <div className="floating-chip chip-3">
-              <div className="chip-icon blue">
-                <Briefcase size={16} />
-              </div>
-              <div className="chip-text">
-                <p className="chip-title">Find Opportunities</p>
-                <p className="chip-sub">Paid & WFH</p>
-              </div>
-            </div>
-
-            {/* Floating Chip 4: Get Hired */}
-            <div className="floating-chip chip-4">
-              <div className="chip-icon green">
-                <TrendingUp size={16} />
-              </div>
-              <div className="chip-text">
-                <p className="chip-title">Get Hired</p>
-                <p className="chip-sub">Avg ₹8-25 LPA</p>
-              </div>
-            </div>
           </div>
         </div>
       </div>

@@ -9,10 +9,10 @@
   width: 100%;
   padding: 56px 40px;
   text-align: center;
-  background: #ffffff;
+  background: var(--card-bg-white);
   border-radius: var(--radius-xl);
   border: 1px solid var(--border-purple);
-  box-shadow: 0 20px 50px -10px rgba(99, 91, 255, 0.12);
+  box-shadow: var(--shadow-card);
 }
 
 .guard-icon-wrapper {

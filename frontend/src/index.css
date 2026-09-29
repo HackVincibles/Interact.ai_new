@@ -18,6 +18,7 @@
   --bg-input: #1e293b;
   --bg-terminal: #020617;
   --bg-modal: #0f172a;
+  --badge-purple-bg: rgba(168, 85, 247, 0.15);
   
   /* Text Colors */
   --text-main: #f8fafc;
@@ -64,6 +65,7 @@
   --bg-input: #f8fafc;
   --bg-terminal: #f1f5f9;
   --bg-modal: #ffffff;
+  --badge-purple-bg: rgba(99, 91, 255, 0.1);
   
   --text-main: #0f172a;
   --text-body: #334155;

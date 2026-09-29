@@ -20,6 +20,8 @@ import {
   Book,
   Compass
 } from 'lucide-react';
+import LiveOrb from '../components/LiveOrb';
+import FAQSection from '../components/FAQSection';
 import './LandingPage.css';
 
 export default function LandingPage({ onGetStarted, onNavigate }) {
@@ -97,11 +99,11 @@ export default function LandingPage({ onGetStarted, onNavigate }) {
 
           {/* Right Visual Graphic */}
           <div className="hero-graphic-side">
-            <div className="hero-illustration-card">
-              <img 
-                src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=800" 
-                alt="Student learning on laptop" 
-                className="hero-3d-image"
+            <div className="landing-orb-wrapper">
+              <LiveOrb 
+                variant="custom" 
+                color="#635bff" 
+                size="100%"
               />
             </div>
           </div>
@@ -315,6 +317,9 @@ export default function LandingPage({ onGetStarted, onNavigate }) {
           </div>
         </div>
       </section>
+
+      {/* FAQ Section */}
+      <FAQSection />
     </div>
   );
 }

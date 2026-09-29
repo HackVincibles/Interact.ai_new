@@ -166,71 +166,12 @@
   z-index: 1;
 }
 
-.illustration-wrapper {
+.hero-orb-wrapper {
   position: relative;
   z-index: 2;
-  width: 100%;
-  max-width: 480px;
-}
-
-.hero-main-img {
-  width: 100%;
-  height: auto;
-  border-radius: var(--radius-xl);
-  box-shadow: 0 20px 40px rgba(99, 91, 255, 0.18);
-  border: 4px solid #ffffff;
-}
-
-/* Floating Chips */
-.floating-chip {
-  position: absolute;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border: 1px solid var(--border-purple);
-  padding: 8px 14px;
-  border-radius: var(--radius-md);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  animation: float 4s ease-in-out infinite;
-  user-select: none;
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-8px); }
-}
-
-.chip-1 { top: -20px; right: -10px; animation-delay: 0s; }
-.chip-2 { bottom: 30px; left: -24px; animation-delay: 1s; }
-.chip-3 { top: 40%; right: -24px; animation-delay: 2s; }
-.chip-4 { bottom: -20px; right: 20px; animation-delay: 1.5s; }
-
-.chip-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-sm);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.chip-icon.orange { background: #ffedd5; color: #c2410c; }
-.chip-icon.purple { background: #eeecff; color: #635bff; }
-.chip-icon.blue { background: #e0f2fe; color: #0369a1; }
-.chip-icon.green { background: #dcfce7; color: #166534; }
-
-.chip-title {
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: var(--text-main);
-  line-height: 1.2;
-}
-
-.chip-sub {
-  font-size: 0.72rem;
-  color: var(--text-muted);
+  width: clamp(240px, 35vw, 420px);
+  aspect-ratio: 1/1;
+  margin: 0 auto;
 }
 
 @media (max-width: 960px) {
@@ -242,5 +183,8 @@
   .hero-subtitle { margin: 0 auto 28px auto; }
   .hero-cta-group, .hero-benefits-row, .hero-social-proof { justify-content: center; }
   .hero-benefits-row { flex-wrap: wrap; }
-  .floating-chip { display: none; }
+  .hero-orb-wrapper {
+    width: clamp(220px, 60vw, 340px);
+    margin-top: 32px;
+  }
 }
