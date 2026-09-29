@@ -365,18 +365,38 @@
 /* Practice Arena Styles */
 .practice-rounds-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 20px;
+  width: 100%;
+}
+
+@media (max-width: 900px) {
+  .practice-rounds-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+}
+
+@media (max-width: 600px) {
+  .practice-rounds-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
 }
 
 .practice-round-card {
+  background: var(--card-bg-white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md, 16px);
   padding: 24px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
   flex-direction: column;
   position: relative;
   overflow: hidden;
+  height: 100%;
+  box-shadow: var(--shadow-card);
 }
 
 .practice-round-card:hover {
@@ -389,29 +409,38 @@
   width: 50px;
   height: 50px;
   border-radius: 12px;
-  background: rgba(168, 85, 247, 0.1);
+  background: rgba(168, 85, 247, 0.12);
   color: var(--primary-purple);
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 12px;
+  flex-shrink: 0;
+  transition: all 0.25s ease;
+}
+
+.practice-round-card:hover .round-icon-box {
+  background: var(--primary-gradient);
+  color: #ffffff;
+  transform: scale(1.05);
 }
 
 .practice-link {
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--primary-purple);
   display: flex;
   align-items: center;
   margin-top: auto;
-  opacity: 0;
-  transform: translateX(-10px);
+  opacity: 0.9;
+  transform: translateX(0);
   transition: all 0.2s ease;
 }
 
 .practice-round-card:hover .practice-link {
   opacity: 1;
-  transform: translateX(0);
+  color: var(--primary-purple);
+  transform: translateX(4px);
 }
 
 .full-interview-card:hover {

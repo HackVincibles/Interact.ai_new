@@ -480,17 +480,36 @@ export default function MockInterviewPage({ currentUser, onNavigate, onInterview
 
           <div 
             className="practice-rounds-grid"
-            style={selectionWarning ? { border: '2px solid #ef4444', borderRadius: '16px', padding: '12px' } : {}}
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gap: '20px',
+              width: '100%',
+              ...(selectionWarning ? { border: '2px solid #ef4444', borderRadius: '16px', padding: '12px' } : {})
+            }}
           >
             {practiceCards.map(card => (
               <div 
                 key={card.id} 
                 className="card-base practice-round-card" 
+                style={{
+                  background: 'var(--card-bg-white)',
+                  border: '1px solid var(--border-light)',
+                  borderRadius: '16px',
+                  padding: '24px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  height: '100%',
+                  cursor: 'pointer',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  boxShadow: 'var(--shadow-card)'
+                }}
                 onClick={() => handleLaunchTargetedPractice(card.id)}
               >
                 <div className="round-icon-box">{card.icon}</div>
-                <h4 style={{ margin: '16px 0 4px 0', fontSize: '1.1rem' }}>{card.title}</h4>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0 0 16px 0' }}>{card.desc}</p>
+                <h4 style={{ margin: '8px 0 6px 0', fontSize: '1.1rem', fontWeight: '700', color: 'var(--text-main)' }}>{card.title}</h4>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', margin: '0 0 16px 0', lineHeight: '1.4', flexGrow: 1 }}>{card.desc}</p>
                 <span className="practice-link">Practice <ArrowRight size={14} style={{ marginLeft: '4px' }} /></span>
               </div>
             ))}
