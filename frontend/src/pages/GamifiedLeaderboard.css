@@ -261,6 +261,7 @@
   border-radius: 50%;
   margin-right: 16px;
   background: var(--card-bg-white);
+  object-fit: cover;
 }
 
 .rank-details {
@@ -422,4 +423,14 @@
 .ach-text {
   font-size: 0.85rem;
   font-weight: 600;
+}
+
+.empty-rankings {
+  text-align: center;
+  padding: 32px;
+  color: var(--text-muted);
+}
+
+.gold-sparkle {
+  color: #fbbf24;
 }

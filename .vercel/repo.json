@@ -1,0 +1,11 @@
+{
+  "remoteName": "origin",
+  "projects": [
+    {
+      "id": "prj_y9VX66HnIdOMBGVwxNsDytwiGbr9",
+      "name": "frontend",
+      "directory": ".",
+      "orgId": "team_jYIhqf9RXYziAUF3sa5w155g"
+    }
+  ]
+}

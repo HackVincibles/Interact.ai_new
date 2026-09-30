@@ -19,6 +19,7 @@ import Footer from './components/Footer';
 import ChatbotWidget from './components/ChatbotWidget';
 import OnboardingWizard from './components/OnboardingWizard';
 import LeaderboardModal from './components/LeaderboardModal';
+import StaticPage from './components/StaticPage';
 import AuthGuard from './components/AuthGuard';
 import { NotificationProvider } from './context/NotificationContext';
 import { auth, logOut as firebaseLogOut } from './services/firebase';
@@ -76,20 +77,33 @@ export default function App() {
   }, [isLoggedIn, userRole, studentProfile]);
 
   useEffect(() => {
-    const path = window.location.pathname.replace(/^\//, '').toLowerCase();
-    const searchParams = new URLSearchParams(window.location.search);
-    
-    if (window.location.pathname.startsWith('/verify/')) {
-      const vid = window.location.pathname.split('/verify/')[1];
-      if (vid) {
-        setVerificationIdToVerify(vid);
-        setActiveTab('verify');
+    const handleLocationChange = () => {
+      const path = window.location.pathname.replace(/^\//, '').toLowerCase();
+      const searchParams = new URLSearchParams(window.location.search);
+      
+      if (window.location.pathname.startsWith('/verify/')) {
+        const vid = window.location.pathname.split('/verify/')[1];
+        if (vid) {
+          setVerificationIdToVerify(vid);
+          setActiveTab('verify');
+        }
+      } else if (searchParams.has('gd_join')) {
+        setActiveTab('mock-interviews');
+      } else if ([
+        'courses', 'career-paths', 'internships', 'jobs', 'resources', 
+        'resume-studio', 'mock-interviews', 'leaderboard', 'profile',
+        'pricing', 'blog', 'about', 'contact', 'privacy', 'terms', 'delete-data', 'compare',
+        'notifications', 'register', 'login'
+      ].includes(path)) {
+        setActiveTab(path);
+      } else if (path === '') {
+        setActiveTab('home');
       }
-    } else if (searchParams.has('gd_join')) {
-      setActiveTab('mock-interviews');
-    } else if (['courses', 'career-paths', 'internships', 'jobs', 'resources', 'resume-studio', 'mock-interviews', 'leaderboard', 'profile'].includes(path)) {
-      setActiveTab(path);
-    }
+    };
+
+    handleLocationChange();
+    window.addEventListener('popstate', handleLocationChange);
+    return () => window.removeEventListener('popstate', handleLocationChange);
   }, []);
 
   // Auth state listener - preserves login session across refresh & reopen until explicit manual logout
@@ -141,6 +155,12 @@ export default function App() {
 
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
+    if (window.history && window.history.pushState) {
+      const targetPath = tabId === 'home' ? '/' : `/${tabId}`;
+      if (window.location.pathname !== targetPath) {
+        window.history.pushState({}, '', targetPath);
+      }
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -363,12 +383,18 @@ export default function App() {
           )
         )}
 
+        {/* Public Static Pages (Pricing, Blog, About, Contact, Privacy, Terms, Delete Data, Compare) */}
+        {['pricing', 'blog', 'about', 'contact', 'privacy', 'terms', 'delete-data', 'compare'].includes(activeTab) && (
+          <StaticPage type={activeTab} onNavigate={handleTabChange} />
+        )}
+
         {/* Catch-all: 404 for any unknown tab */}
         {![
           'home', 'register', 'login', 'career-paths', 'courses',
           'internships', 'jobs', 'resources', 'resume-studio',
           'mock-interviews', 'leaderboard', 'profile', 'notifications',
-          'verify',
+          'verify', 'pricing', 'blog', 'about', 'contact', 'privacy',
+          'terms', 'delete-data', 'compare',
         ].includes(activeTab) && (
           <ErrorPage code={404} onNavigate={handleTabChange} />
         )}
