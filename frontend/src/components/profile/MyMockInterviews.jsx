@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Award, CheckCircle2, AlertCircle } from 'lucide-react';
-
+import CareerActivityGraph from '../CareerActivityGraph';
 import API_BASE_URL from '../../config/api';
 
 export default function MyMockInterviews({ currentUser, onNavigate }) {
@@ -51,6 +51,8 @@ export default function MyMockInterviews({ currentUser, onNavigate }) {
 
   return (
     <div className="profile-section-card card-base">
+      <CareerActivityGraph currentUser={currentUser} customHistory={history} />
+
       <div className="section-card-header">
         <div className="title-with-icon">
           <Award size={24} className="card-icon orange" />

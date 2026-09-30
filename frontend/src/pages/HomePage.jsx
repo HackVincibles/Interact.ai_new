@@ -8,6 +8,7 @@ import {
   Briefcase, 
   Award, 
   Mic, 
+  Users,
   FileText, 
   CheckCircle2, 
   MapPin, 
@@ -18,9 +19,9 @@ import {
 } from 'lucide-react';
 import './HomePage.css';
 import LiveOrb from '../components/LiveOrb';
+import CareerActivityGraph from '../components/CareerActivityGraph';
 
-
-export default function HomePage({ onNavigate, onWatchDemo }) {
+export default function HomePage({ currentUser, onNavigate, onWatchDemo }) {
   const [oppTab, setOppTab] = useState('internships');
 
   const exploreCards = [
@@ -146,57 +147,110 @@ export default function HomePage({ onNavigate, onWatchDemo }) {
 
   const currentOpps = opportunitiesData[oppTab] || opportunitiesData.internships;
 
+  const getTimeOfDay = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'morning';
+    if (hour < 17) return 'afternoon';
+    return 'evening';
+  };
+
+  const userName = currentUser?.fullName?.split(' ')[0] || 'Candidate';
+
   return (
     <div className="home-page-root animate-fade-in">
-      {/* Hero Section */}
-      <section className="home-hero-section">
-        <div className="container home-hero-container">
-          {/* Left Text */}
-          <div className="home-hero-left">
-            <div className="top-ai-badge">
-              <Sparkles size={14} className="sparkle-gold" />
-              <span>AI-Powered Career Guidance for Students</span>
+      {/* Authenticated Candidate Workspace Header */}
+      <section className="candidate-dashboard-header-section">
+        <div className="container dashboard-header-container">
+          <div className="dashboard-header-left">
+            <div className="dashboard-status-badge">
+              <span className="status-dot-green">●</span>
+              <span>ACTIVE CANDIDATE WORKSPACE</span>
             </div>
 
-            <h1 className="home-hero-heading">
-              Your Journey From <br />
-              <span className="purple-gradient-text">Campus to Corporate</span>
+            <h1 className="dashboard-user-greeting">
+              Good {getTimeOfDay()}, <span className="purple-gradient-text">{userName}</span> 👋
             </h1>
 
-            <p className="home-hero-subtext">
-              Discover career paths, learn in-demand skills, find opportunities and get hired — all in one place.
+            <p className="dashboard-header-subtext">
+              Ready to move one step closer to your dream corporate role today? Track your career readiness, practice AI interviews, and improve key skills.
             </p>
 
-            <div className="home-hero-buttons">
-              <button className="btn-primary-purple" onClick={() => onNavigate('courses')}>
-                <span>Get Started</span>
-                <ArrowRight size={18} />
+            {currentUser?.collegeName && (
+              <div className="dashboard-user-meta-pill">
+                <GraduationCap size={15} />
+                <span>{currentUser.collegeName} {currentUser.branch ? `• ${currentUser.branch}` : ''}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Quick Practice Actions Panel */}
+          <div className="dashboard-quick-actions-panel">
+            <h4 className="quick-actions-title">What do you want to practice today?</h4>
+            <div className="quick-actions-grid">
+              <button 
+                className="quick-action-card primary"
+                onClick={() => onNavigate('mock-interviews')}
+              >
+                <div className="action-icon-circle purple">
+                  <Mic size={20} />
+                </div>
+                <div className="action-info">
+                  <strong>AI Mock Interview</strong>
+                  <span>Practice live role-specific interview</span>
+                </div>
+                <ArrowRight size={16} className="action-arrow" />
+              </button>
+
+              <button 
+                className="quick-action-card"
+                onClick={() => onNavigate('mock-interviews')}
+              >
+                <div className="action-icon-circle blue">
+                  <Users size={20} />
+                </div>
+                <div className="action-info">
+                  <strong>Group Discussion</strong>
+                  <span>Improve communication & GD skills</span>
+                </div>
+                <ArrowRight size={16} className="action-arrow" />
+              </button>
+
+              <button 
+                className="quick-action-card"
+                onClick={() => onNavigate('resume-studio')}
+              >
+                <div className="action-icon-circle green">
+                  <FileText size={20} />
+                </div>
+                <div className="action-info">
+                  <strong>Resume Studio & ATS</strong>
+                  <span>Analyze & score your ATS resume</span>
+                </div>
+                <ArrowRight size={16} className="action-arrow" />
+              </button>
+
+              <button 
+                className="quick-action-card"
+                onClick={() => onNavigate('career-paths')}
+              >
+                <div className="action-icon-circle orange">
+                  <Compass size={20} />
+                </div>
+                <div className="action-info">
+                  <strong>Career Roadmap</strong>
+                  <span>Explore in-demand industry skills</span>
+                </div>
+                <ArrowRight size={16} className="action-arrow" />
               </button>
             </div>
-
-            <div className="home-social-proof">
-              <div className="proof-avatars">
-                <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=120" alt="Student" />
-                <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=120" alt="Student" />
-                <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=120" alt="Student" />
-                <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=120" alt="Student" />
-              </div>
-              <p className="proof-label">
-                Trusted by <strong>10,000+</strong> students from 200+ colleges
-              </p>
-            </div>
           </div>
+        </div>
+      </section>
 
-          {/* Right Visual Graphic */}
-          <div className="home-hero-right">
-            <div className="landing-orb-wrapper">
-              <LiveOrb 
-                variant="custom" 
-                color="#635bff" 
-                size="100%"
-              />
-            </div>
-          </div>
+      {/* Career Activity Calendar Graph */}
+      <section className="dashboard-activity-graph-section" style={{ padding: '48px 0 20px 0' }}>
+        <div className="container">
+          <CareerActivityGraph currentUser={currentUser} />
         </div>
       </section>
 

@@ -13,7 +13,6 @@ import API_BASE_URL from '../config/api';
 
 export default function MockInterviewPage({ currentUser, onNavigate, onInterviewStateChange }) {
   const [stage, setStage] = useState('setup'); // 'setup', 'lobby', 'studio', 'report', 'gd-setup', 'gd-room'
-  const [activeArenaTab, setActiveArenaTab] = useState('targeted'); // 'targeted' or 'custom'
   const [showGDOnboarding, setShowGDOnboarding] = useState(false);
   const { addNotification } = useNotifications();
   const [interviewConfig, setInterviewConfig] = useState({
@@ -287,11 +286,11 @@ export default function MockInterviewPage({ currentUser, onNavigate, onInterview
   };
 
   const practiceCards = [
-    { id: 'Aptitude', icon: <Brain size={24} />, title: 'Aptitude & Reasoning', desc: '30 Quantitative & Logical MCQ Practice Questions', badge: '30 MCQ Test' },
-    { id: 'Technical', icon: <LayoutDashboard size={24} />, title: 'Technical Round', desc: 'Core CS Concepts, OS, DBMS & System Architecture', badge: 'Theory & Core' },
-    { id: 'Coding', icon: <Code size={24} />, title: 'Coding Round', desc: 'Data Structures, Algorithms & Real-Time IDE', badge: 'DSA & IDE' },
-    { id: 'HR', icon: <Briefcase size={24} />, title: 'HR & Behavioral', desc: 'Situational Scenarios & STAR Method Coaching', badge: 'Soft Skills' },
-    { id: 'GD', icon: <Users size={24} />, title: 'Group Discussion', desc: 'Multi-candidate Communication & Leadership Arena', badge: 'Multiplayer' },
+    { id: 'Aptitude', icon: <Brain size={24} />, title: 'Aptitude', desc: 'Quantitative & Logical' },
+    { id: 'Technical', icon: <LayoutDashboard size={24} />, title: 'Technical', desc: 'Core Concepts & Theory' },
+    { id: 'Coding', icon: <Code size={24} />, title: 'Coding', desc: 'DSA & Algorithms' },
+    { id: 'HR', icon: <Briefcase size={24} />, title: 'HR & Behavioral', desc: 'Situational & Soft Skills' },
+    { id: 'GD', icon: <Users size={24} />, title: 'Group Discussion', desc: 'Communication & Leadership' },
   ];
 
   return (
@@ -299,247 +298,247 @@ export default function MockInterviewPage({ currentUser, onNavigate, onInterview
       
       {/* Stage 1: Setup & Target Selection */}
       {stage === 'setup' && (
-        <div className="container animate-fade-in" style={{ padding: '40px 0' }}>
+        <div className="container animate-fade-in" style={{ padding: '60px 0' }}>
           
-          <div className="arena-header-banner">
-            <span className="section-label">AI MOCK INTERVIEW ARENA</span>
-            <h1 style={{ fontSize: '2.4rem', fontWeight: '800', margin: '12px 0 8px 0', color: 'var(--text-main)' }}>
-              Master Every <span className="purple-gradient-text">Interview Round</span>
+          <div className="practice-arena-header">
+            <span className="section-label">AI MOCK INTERVIEWS</span>
+            <h1 style={{ fontSize: '2.2rem', fontWeight: '800', margin: '8px 0 12px 0', color: 'var(--text-main)' }}>
+              Interview <span className="purple-gradient-text">Practice Arena</span>
             </h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem', lineHeight: '1.6', margin: 0 }}>
-              Practice targeted interview rounds with specialized AI evaluators or launch a full custom AI mock interview.
+            <p style={{ color: 'var(--text-muted)', marginBottom: '32px', fontSize: '1.02rem', lineHeight: '1.5' }}>
+              Experience a full mock interview or target a specific round for rapid improvement.
             </p>
-
-            <div className="arena-mode-switcher">
-              <button 
-                type="button"
-                className={`arena-mode-tab ${activeArenaTab === 'targeted' ? 'active' : ''}`}
-                onClick={() => setActiveArenaTab('targeted')}
-              >
-                <Brain size={16} /> Targeted Practice Rounds
-              </button>
-
-              <button 
-                type="button"
-                className={`arena-mode-tab ${activeArenaTab === 'custom' ? 'active' : ''}`}
-                onClick={() => setActiveArenaTab('custom')}
-              >
-                <Sparkles size={16} /> Custom Full Interview Studio
-              </button>
-            </div>
           </div>
 
-          {/* TAB 1: TARGETED PRACTICE ROUNDS (DEFAULT ACTIVE) */}
-          {activeArenaTab === 'targeted' && (
-            <div className="animate-fade-in" style={{ marginBottom: '40px' }}>
-              {selectionWarning && (
-                <div style={{ marginBottom: '20px', padding: '12px 16px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid #ef4444', borderRadius: '8px', color: '#f87171', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <ShieldCheck size={18} /> Please select a target practice round card below to launch!
-                </div>
-              )}
-
-              <div className="practice-rounds-grid">
-                {practiceCards.map(card => (
-                  <div 
-                    key={card.id} 
-                    className="card-base practice-round-card"
-                    onClick={() => handleLaunchTargetedPractice(card.id)}
-                  >
-                    <span className="round-card-badge">{card.badge}</span>
-                    <div className="round-icon-box">{card.icon}</div>
-                    <h4 style={{ margin: '8px 0 6px 0', fontSize: '1.15rem', fontWeight: '800', color: 'var(--text-main)' }}>{card.title}</h4>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', margin: '0 0 20px 0', lineHeight: '1.5', flexGrow: 1 }}>{card.desc}</p>
-                    <span className="practice-link">Start Practice <ArrowRight size={14} style={{ marginLeft: '4px' }} /></span>
-                  </div>
-                ))}
-              </div>
+          {/* Comprehensive AI Interview Customization Control Panel */}
+          <div className="card-base setup-card" style={{ padding: '30px', margin: '0 auto 35px', borderRadius: '16px', background: 'var(--card-bg-white)', border: '1px solid var(--border-purple)' }}>
+            <div style={{ marginBottom: '20px', borderBottom: '1px solid var(--border-light)', paddingBottom: '12px' }}>
+              <span className="section-label" style={{ background: 'rgba(99,91,255,0.1)', color: 'var(--primary-purple)', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '700' }}>
+                AI INTERVIEW CONFIGURATOR
+              </span>
+              <h2 style={{ fontSize: '1.4rem', fontWeight: '800', margin: '8px 0 4px 0', color: 'var(--text-main)' }}>
+                Customize Your Live AI Interview Session
+              </h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>
+                Set duration, interview basis (Resume, Role & JD, HR, CS Core), and universal difficulty level.
+              </p>
             </div>
-          )}
 
-          {/* TAB 2: CUSTOM FULL INTERVIEW CONFIGURATOR */}
-          {activeArenaTab === 'custom' && (
-            <div className="card-base setup-card animate-fade-in" style={{ padding: '30px', margin: '0 auto 40px', borderRadius: '20px', background: 'var(--card-bg-white)', border: '1px solid var(--border-purple)' }}>
-              <div style={{ marginBottom: '24px', borderBottom: '1px solid var(--border-light)', paddingBottom: '16px' }}>
-                <span className="section-label" style={{ background: 'rgba(99,91,255,0.1)', color: 'var(--primary-purple)', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '700' }}>
-                  FULL INTERVIEW CONFIGURATOR
-                </span>
-                <h2 style={{ fontSize: '1.4rem', fontWeight: '800', margin: '8px 0 4px 0', color: 'var(--text-main)' }}>
-                  Customize Your Full AI Interview Session
-                </h2>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>
-                  Set duration, interview basis (Resume, Role & JD, HR, CS Core), and difficulty level.
-                </p>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', marginBottom: '24px' }}>
-                
-                {/* 1. Duration Selection */}
-                <div>
-                  <label className="config-section-title">
-                    ⏱️ 1. Duration (Minutes)
-                  </label>
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    {['15', '30', '45', '60'].map((mins) => (
-                      <button
-                        key={mins}
-                        type="button"
-                        onClick={() => setInterviewConfig(prev => ({ ...prev, duration: mins }))}
-                        style={{
-                          flex: 1,
-                          minWidth: '60px',
-                          padding: '10px 12px',
-                          borderRadius: '8px',
-                          border: interviewConfig.duration === mins ? '2px solid var(--primary-purple)' : '1px solid var(--border-light)',
-                          background: interviewConfig.duration === mins ? 'rgba(99, 91, 255, 0.15)' : 'var(--bg-subtle)',
-                          color: interviewConfig.duration === mins ? 'var(--primary-purple)' : 'var(--text-main)',
-                          fontWeight: '700',
-                          fontSize: '0.88rem',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        {mins} Min
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 2. Difficulty Selection */}
-                <div>
-                  <label className="config-section-title">
-                    🎯 2. Select Difficulty Level
-                  </label>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    {[
-                      { id: 'Easy', label: 'Easy' },
-                      { id: 'Medium', label: 'Medium' },
-                      { id: 'FAANG Level (Hard)', label: 'FAANG Level 🔥' }
-                    ].map((diff) => (
-                      <button
-                        key={diff.id}
-                        type="button"
-                        onClick={() => setInterviewConfig(prev => ({ ...prev, difficulty: diff.id }))}
-                        style={{
-                          flex: 1,
-                          padding: '10px 10px',
-                          borderRadius: '8px',
-                          border: interviewConfig.difficulty === diff.id ? '2px solid var(--primary-purple)' : '1px solid var(--border-light)',
-                          background: interviewConfig.difficulty === diff.id ? 'rgba(99, 91, 255, 0.15)' : 'var(--bg-subtle)',
-                          color: interviewConfig.difficulty === diff.id ? 'var(--primary-purple)' : 'var(--text-main)',
-                          fontWeight: '700',
-                          fontSize: '0.82rem',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        {diff.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-              </div>
-
-              {/* 3. Interview Basis Selector */}
-              <div style={{ marginBottom: '24px' }}>
-                <label className="config-section-title">
-                  📋 3. Select Interview Basis / Mode
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', marginBottom: '24px' }}>
+              
+              {/* 1. Duration Selection (Mandatory: 15, 30, 45, 60 min) */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.88rem', fontWeight: '700', marginBottom: '8px', color: 'var(--text-main)' }}>
+                  ⏱️ 1. Interview Duration (Mandatory)
                 </label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
-                  {[
-                    { id: 'resume', title: '📄 Resume-Based', desc: 'AI reads candidate resume & asks project questions' },
-                    { id: 'role_jd', title: '💼 Custom Role & JD', desc: 'Specify target role (SDE, Java Dev) & Job Description' },
-                    { id: 'hr', title: '🤝 HR & Behavioral', desc: 'Situational & behavioral culture questions' },
-                    { id: 'cs_core', title: '💻 CS Fundamentals', desc: 'OS, DBMS, Networks, OOPs & DSA' }
-                  ].map((m) => (
-                    <div
-                      key={m.id}
-                      onClick={() => setInterviewConfig(prev => ({ ...prev, mode: m.id }))}
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {['15', '30', '45', '60'].map((mins) => (
+                    <button
+                      key={mins}
+                      type="button"
+                      onClick={() => setInterviewConfig(prev => ({ ...prev, duration: mins }))}
                       style={{
-                        padding: '14px',
-                        borderRadius: '10px',
-                        border: interviewConfig.mode === m.id ? '2px solid var(--primary-purple)' : '1px solid var(--border-light)',
-                        background: interviewConfig.mode === m.id ? 'rgba(99, 91, 255, 0.12)' : 'var(--bg-subtle)',
+                        flex: 1,
+                        minWidth: '60px',
+                        padding: '10px 12px',
+                        borderRadius: '8px',
+                        border: interviewConfig.duration === mins ? '2px solid var(--primary-purple)' : '1px solid var(--border-light)',
+                        background: interviewConfig.duration === mins ? 'rgba(99, 91, 255, 0.15)' : 'var(--bg-subtle)',
+                        color: interviewConfig.duration === mins ? 'var(--primary-purple)' : 'var(--text-main)',
+                        fontWeight: '700',
+                        fontSize: '0.88rem',
                         cursor: 'pointer',
                         transition: 'all 0.2s'
                       }}
                     >
-                      <strong style={{ fontSize: '0.95rem', color: interviewConfig.mode === m.id ? 'var(--primary-purple)' : 'var(--text-main)', display: 'block', marginBottom: '4px' }}>
-                        {m.title}
-                      </strong>
-                      <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0, lineHeight: '1.3' }}>
-                        {m.desc}
-                      </p>
-                    </div>
+                      {mins} Min
+                    </button>
                   ))}
                 </div>
               </div>
 
-              {/* Dynamic Inputs */}
-              {interviewConfig.mode === 'resume' && (
-                <div style={{ padding: '16px', borderRadius: '10px', background: 'var(--bg-subtle)', border: '1px dashed var(--primary-purple)', marginBottom: '24px' }}>
-                  <label style={{ display: 'block', fontSize: '0.88rem', fontWeight: '700', marginBottom: '6px' }}>
-                    Upload or Select Candidate Resume
-                  </label>
-                  <input
-                    type="file"
-                    accept=".pdf,.docx,.txt"
-                    onChange={handleFileUpload}
-                    style={{ fontSize: '0.85rem' }}
-                  />
-                  {interviewConfig.resumeName && (
-                    <p style={{ fontSize: '0.82rem', color: '#16a34a', fontWeight: '700', marginTop: '6px' }}>
-                      ✓ Loaded Document: {interviewConfig.resumeName} (AI Ready to parse)
-                    </p>
-                  )}
+              {/* 2. Universal Difficulty Selection */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.88rem', fontWeight: '700', marginBottom: '8px', color: 'var(--text-main)' }}>
+                  🎯 2. Select Difficulty Level
+                </label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {[
+                    { id: 'Easy', label: 'Easy' },
+                    { id: 'Medium', label: 'Medium' },
+                    { id: 'FAANG Level (Hard)', label: 'FAANG Level 🔥' }
+                  ].map((diff) => (
+                    <button
+                      key={diff.id}
+                      type="button"
+                      onClick={() => setInterviewConfig(prev => ({ ...prev, difficulty: diff.id }))}
+                      style={{
+                        flex: 1,
+                        padding: '10px 10px',
+                        borderRadius: '8px',
+                        border: interviewConfig.difficulty === diff.id ? '2px solid var(--primary-purple)' : '1px solid var(--border-light)',
+                        background: interviewConfig.difficulty === diff.id ? 'rgba(99, 91, 255, 0.15)' : 'var(--bg-subtle)',
+                        color: interviewConfig.difficulty === diff.id ? 'var(--primary-purple)' : 'var(--text-main)',
+                        fontWeight: '700',
+                        fontSize: '0.82rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      {diff.label}
+                    </button>
+                  ))}
                 </div>
-              )}
+              </div>
 
-              {interviewConfig.mode === 'role_jd' && (
-                <div className="config-grid-2col" style={{ marginBottom: '24px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', marginBottom: '6px' }}>Target Role / Profile Title</label>
-                    <input
-                      type="text"
-                      value={interviewConfig.targetRole}
-                      onChange={(e) => setInterviewConfig(prev => ({ ...prev, targetRole: e.target.value }))}
-                      placeholder="e.g. SDE-1, Java Developer, Full Stack Engineer..."
-                      style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-light)', background: 'var(--bg-input)', color: 'var(--text-main)', fontSize: '0.88rem' }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', marginBottom: '6px' }}>Target Job Description (JD)</label>
-                    <textarea
-                      rows={2}
-                      value={interviewConfig.jobDescription}
-                      onChange={(e) => setInterviewConfig(prev => ({ ...prev, jobDescription: e.target.value }))}
-                      placeholder="Paste job description details..."
-                      style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-light)', background: 'var(--bg-input)', color: 'var(--text-main)', fontSize: '0.85rem' }}
-                    />
-                  </div>
-                </div>
-              )}
-
-              <button
-                className="btn-primary-purple"
-                style={{ width: '100%', padding: '14px', borderRadius: '30px', fontSize: '1.05rem', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                onClick={handleLaunchFullInterview}
-              >
-                <span>Launch {interviewConfig.duration} Min Customized AI Interview Studio</span>
-                <ArrowRight size={20} />
-              </button>
             </div>
-          )}
 
-          {/* RECENT PRACTICE HISTORY */}
-          <div style={{ marginTop: '30px' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: '800', margin: '0 0 16px 0', color: 'var(--text-main)' }}>Recent Practice Sessions</h3>
+            {/* 3. Interview Mode / Basis Selector */}
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ display: 'block', fontSize: '0.88rem', fontWeight: '700', marginBottom: '8px', color: 'var(--text-main)' }}>
+                📋 3. Select Interview Basis / Mode
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                {[
+                  { id: 'resume', title: '📄 Resume-Based', desc: 'AI reads candidate resume & asks project questions' },
+                  { id: 'role_jd', title: '💼 Custom Role & JD', desc: 'Specify any target role (SDE, Java Dev) & Job Description' },
+                  { id: 'hr', title: '🤝 HR & Behavioral', desc: 'Situational & behavioral culture questions' },
+                  { id: 'cs_core', title: '💻 CS Fundamentals', desc: 'OS, DBMS, Networks, OOPs & DSA' }
+                ].map((m) => (
+                  <div
+                    key={m.id}
+                    onClick={() => setInterviewConfig(prev => ({ ...prev, mode: m.id }))}
+                    style={{
+                      padding: '14px',
+                      borderRadius: '10px',
+                      border: interviewConfig.mode === m.id ? '2px solid var(--primary-purple)' : '1px solid var(--border-light)',
+                      background: interviewConfig.mode === m.id ? 'rgba(99, 91, 255, 0.12)' : 'var(--bg-subtle)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <strong style={{ fontSize: '0.95rem', color: interviewConfig.mode === m.id ? 'var(--primary-purple)' : 'var(--text-main)', display: 'block', marginBottom: '4px' }}>
+                      {m.title}
+                    </strong>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0, lineHeight: '1.3' }}>
+                      {m.desc}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Dynamic Inputs Based on Selection */}
+            {interviewConfig.mode === 'resume' && (
+              <div style={{ padding: '16px', borderRadius: '10px', background: 'var(--bg-subtle)', border: '1px dashed var(--primary-purple)', marginBottom: '24px' }}>
+                <label style={{ display: 'block', fontSize: '0.88rem', fontWeight: '700', marginBottom: '6px' }}>
+                  Upload or Select Candidate Resume
+                </label>
+                <input
+                  type="file"
+                  accept=".pdf,.docx,.txt"
+                  onChange={handleFileUpload}
+                  style={{ fontSize: '0.85rem' }}
+                />
+                {interviewConfig.resumeName && (
+                  <p style={{ fontSize: '0.82rem', color: '#16a34a', fontWeight: '700', marginTop: '6px' }}>
+                    ✓ Loaded Document: {interviewConfig.resumeName} (AI Ready to parse)
+                  </p>
+                )}
+              </div>
+            )}
+
+            {interviewConfig.mode === 'role_jd' && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', marginBottom: '6px' }}>Target Role / Profile Title</label>
+                  <input
+                    type="text"
+                    value={interviewConfig.targetRole}
+                    onChange={(e) => setInterviewConfig(prev => ({ ...prev, targetRole: e.target.value }))}
+                    placeholder="e.g. SDE-1, Java Developer, Full Stack Engineer..."
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-light)', background: 'var(--bg-input)', color: 'var(--text-main)', fontSize: '0.88rem' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', marginBottom: '6px' }}>Target Job Description (JD)</label>
+                  <textarea
+                    rows={2}
+                    value={interviewConfig.jobDescription}
+                    onChange={(e) => setInterviewConfig(prev => ({ ...prev, jobDescription: e.target.value }))}
+                    placeholder="Paste job description details..."
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-light)', background: 'var(--bg-input)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <button
+              className="btn-primary-purple"
+              style={{ width: '100%', padding: '14px', borderRadius: '30px', fontSize: '1.05rem', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+              onClick={handleLaunchFullInterview}
+            >
+              <span>Launch {interviewConfig.duration} Min Customized AI Interview Studio</span>
+              <ArrowRight size={20} />
+            </button>
+
+          </div>
+
+          <div style={{ margin: '40px 0 20px' }}>
+            <h3 style={{ fontSize: '1.2rem', margin: '0 0 8px 0' }}>Practice a Specific Round</h3>
+            <p style={{ color: 'var(--text-muted)', margin: 0 }}>Choose exactly what you want to practice and improve today.</p>
+            {selectionWarning && (
+              <div style={{ marginTop: '12px', padding: '12px 16px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid #ef4444', borderRadius: '8px', color: '#f87171', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <ShieldCheck size={18} /> Please select a target interview domain/round below before launching session!
+              </div>
+            )}
+          </div>
+
+          <div 
+            className="practice-rounds-grid"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gap: '20px',
+              width: '100%',
+              ...(selectionWarning ? { border: '2px solid #ef4444', borderRadius: '16px', padding: '12px' } : {})
+            }}
+          >
+            {practiceCards.map(card => (
+              <div 
+                key={card.id} 
+                className="card-base practice-round-card" 
+                style={{
+                  background: 'var(--card-bg-white)',
+                  border: '1px solid var(--border-light)',
+                  borderRadius: '16px',
+                  padding: '24px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  height: '100%',
+                  cursor: 'pointer',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  boxShadow: 'var(--shadow-card)'
+                }}
+                onClick={() => handleLaunchTargetedPractice(card.id)}
+              >
+                <div className="round-icon-box">{card.icon}</div>
+                <h4 style={{ margin: '8px 0 6px 0', fontSize: '1.1rem', fontWeight: '700', color: 'var(--text-main)' }}>{card.title}</h4>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', margin: '0 0 16px 0', lineHeight: '1.4', flexGrow: 1 }}>{card.desc}</p>
+                <span className="practice-link">Practice <ArrowRight size={14} style={{ marginLeft: '4px' }} /></span>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ margin: '40px 0 20px' }}>
+            <h3 style={{ fontSize: '1.2rem', margin: '0 0 16px 0' }}>Recent Practice</h3>
             {practiceHistory.length === 0 ? (
-              <div className="card-base" style={{ padding: '24px', textAlign: 'center', borderRadius: '12px' }}>
+              <div className="card-base" style={{ padding: '24px', textAlign: 'center' }}>
                 <p style={{ color: 'var(--text-muted)', margin: 0 }}>No practice sessions yet. Choose a round above to start practicing.</p>
               </div>
             ) : (
-              <div className="card-base practice-history-list" style={{ borderRadius: '12px', overflow: 'hidden' }}>
+              <div className="card-base practice-history-list">
                 {practiceHistory.slice(0, 5).map((history, idx) => {
                   let parsedFeedback = {};
                   try {
@@ -549,14 +548,14 @@ export default function MockInterviewPage({ currentUser, onNavigate, onInterview
                   return (
                     <div key={idx} className="history-item">
                       <div className="history-info">
-                        <span style={{ fontWeight: '700', color: 'var(--text-main)' }}>
+                        <span style={{ fontWeight: '600' }}>
                           {history.practice_mode === 'targeted' ? `${history.round_type} Practice` : 'Full Interview'}
                         </span>
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                           {new Date(history.created_at).toLocaleDateString()}
                         </span>
                       </div>
-                      <div className="history-score" style={{ fontWeight: '800', fontSize: '1.05rem', color: score >= 70 ? '#10b981' : (score >= 50 ? '#f59e0b' : '#ef4444') }}>
+                      <div className="history-score" style={{ fontWeight: '700', color: score >= 70 ? '#10b981' : (score >= 50 ? '#f59e0b' : '#ef4444') }}>
                         {score}%
                       </div>
                     </div>

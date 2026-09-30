@@ -280,6 +280,7 @@ export default function App() {
           isLoggedIn ? (
             /* Logged-In Candidate Home Dashboard (Image 2) */
             <HomePage 
+              currentUser={studentProfile}
               onNavigate={handleTabChange}
             />
           ) : (
