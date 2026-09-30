@@ -14,20 +14,62 @@ export default function LiveInterviewStudio({ initialStream, interviewConfig, on
   const totalSeconds = durationMins * 60;
   const [remainingSeconds, setRemainingSeconds] = useState(totalSeconds);
 
+  const getInitialQuestionText = () => {
+    if (interviewConfig?.initialQuestion) {
+      return interviewConfig.initialQuestion;
+    }
+    if (interviewConfig?.practiceMode === 'targeted' && interviewConfig?.roundType) {
+      const round = interviewConfig.roundType;
+      if (round === 'Aptitude') {
+        return "Welcome to your targeted Aptitude Practice session. I am your AI Evaluator. Let's begin with quantitative & logical reasoning: A train running at 72 km/h crosses a 200m platform in 25 seconds. What is the length of the train?";
+      }
+      if (round === 'HR') {
+        return "Welcome to your targeted HR & Behavioral Practice session. I am your HR Interviewer. Let's begin: Tell me about a time when you faced a major technical challenge or deadline conflict, and how you handled it.";
+      }
+      if (round === 'Coding') {
+        return "Welcome to your targeted Coding Practice session. Please review the problem statement in the IDE: Given an integer array and a target sum, write an optimal algorithm to find the indices of two numbers that add up to the target.";
+      }
+      if (round === 'Technical') {
+        return "Welcome to your targeted Technical Practice session. Let's start with computer science fundamentals: Could you explain the key differences between process and thread, and how memory management works in multi-threaded environments?";
+      }
+      return `Welcome to your targeted ${round} practice session. Let's begin with your first practice question. Could you walk me through your core concepts in this area?`;
+    }
+    return `Welcome to your live interview for ${interviewConfig?.targetRole || 'Software Development Engineer'}. I am your AI Interviewer. Please introduce yourself and walk me through your technical background and key projects.`;
+  };
+
+  const getInitialCodeContent = () => {
+    if (interviewConfig?.practiceMode === 'targeted' && interviewConfig?.roundType) {
+      const round = interviewConfig.roundType;
+      if (round === 'Aptitude') {
+        return `// 🧮 Aptitude Rough Work & Calculation Scratchpad\n// Question: A train running at 72 km/h crosses a 200m platform in 25 seconds.\n// Speed = 72 * (5/18) = 20 m/s\n// Total distance = Speed * Time = 20 * 25 = 500m\n// Train Length = 500m - 200m = 300m\n\n// Write your calculations or rough notes below:`;
+      }
+      if (round === 'HR') {
+        return `// 💬 HR & Behavioral Interview Notes (STAR Method)\n// S - Situation: \n// T - Task: \n// A - Action: \n// R - Result: \n\n// Outline your points here while speaking:`;
+      }
+      if (round === 'Technical') {
+        return `// ⚙️ Technical Architecture & Concepts Workspace\n// Topic: OS, Data Structures & System Architecture\n\n// Process vs Thread:\n// - Process: Independent execution unit with separate memory space\n// - Thread: Lightweight execution unit sharing process memory\n\n// Write your technical notes or pseudocode here:`;
+      }
+    }
+    return `// Write your live solution or algorithm here\nfunction solveProblem(nums, target) {\n  const map = new Map();\n  for (let i = 0; i < nums.length; i++) {\n    const diff = target - nums[i];\n    if (map.has(diff)) return [map.get(diff), i];\n    map.set(nums[i], i);\n  }\n  return [];\n}`;
+  };
+
+  const getInitialConsoleOutput = () => {
+    if (interviewConfig?.practiceMode === 'targeted' && interviewConfig?.roundType) {
+      return `Targeted ${interviewConfig.roundType} Practice session active. AI Evaluator connected.`;
+    }
+    return 'AI Code Engine connected. Interviewer will inspect your code.';
+  };
+
   // Question & Transcript state
   const [currentQuestionNumber, setCurrentQuestionNumber] = useState(1);
-  const [currentQuestionText, setCurrentQuestionText] = useState(
-    `Welcome to your live interview for ${interviewConfig?.targetRole || 'Software Development Engineer'}. I am your AI Interviewer. Please introduce yourself and walk me through your technical background and key projects.`
-  );
+  const [currentQuestionText, setCurrentQuestionText] = useState(getInitialQuestionText);
   
   const [candidateAnswer, setCandidateAnswer] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [transcript, setTranscript] = useState([]);
 
   // Live Captions state
-  const [interviewerCaption, setInterviewerCaption] = useState(
-    `Welcome to your live interview for ${interviewConfig?.targetRole || 'Software Development Engineer'}. I am your AI Interviewer. Please introduce yourself and walk me through your technical background and key projects.`
-  );
+  const [interviewerCaption, setInterviewerCaption] = useState(getInitialQuestionText);
   const [userCaption, setUserCaption] = useState('');
 
   // Media & Controls
@@ -46,10 +88,8 @@ export default function LiveInterviewStudio({ initialStream, interviewConfig, on
 
   // Code IDE State
   const [codeLanguage, setCodeLanguage] = useState('javascript');
-  const [codeContent, setCodeContent] = useState(
-    `// Write your live solution or algorithm here\nfunction solveProblem(nums, target) {\n  const map = new Map();\n  for (let i = 0; i < nums.length; i++) {\n    const diff = target - nums[i];\n    if (map.has(diff)) return [map.get(diff), i];\n    map.set(nums[i], i);\n  }\n  return [];\n}`
-  );
-  const [consoleOutput, setConsoleOutput] = useState('AI Code Engine connected. Interviewer will inspect your code.');
+  const [codeContent, setCodeContent] = useState(getInitialCodeContent);
+  const [consoleOutput, setConsoleOutput] = useState(getInitialConsoleOutput);
   const [isAnalyzingCode, setIsAnalyzingCode] = useState(false);
 
   const videoRef = useRef(null);
@@ -444,7 +484,9 @@ export default function LiveInterviewStudio({ initialStream, interviewConfig, on
             <Sparkles size={14} className="sparkle-icon" /> LIVE AI INTERVIEW
           </span>
           <h2 className="interview-title">
-            {interviewConfig?.targetRole || 'Software Development Engineer'}
+            {interviewConfig?.practiceMode === 'targeted' && interviewConfig?.roundType
+              ? `Targeted ${interviewConfig.roundType} Practice`
+              : (interviewConfig?.targetRole || 'Software Development Engineer')}
           </h2>
         </div>
 

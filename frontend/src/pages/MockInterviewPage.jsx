@@ -5,6 +5,7 @@ import InterviewReportView from '../components/InterviewReportView';
 import GDSetupView from '../components/GDSetupView';
 import GDRoomView from '../components/GDRoomView';
 import GDOnboardingModal from '../components/GDOnboardingModal';
+import AptitudePracticeStudio from '../components/AptitudePracticeStudio';
 import RoundLoadingOverlay from '../components/RoundLoadingOverlay';
 import { Award, ShieldCheck, Sparkles, Video, Play, ArrowRight, Brain, Code, Briefcase, Users, LayoutDashboard } from 'lucide-react';
 import { useNotifications } from '../context/NotificationContext';
@@ -48,6 +49,12 @@ export default function MockInterviewPage({ currentUser, onNavigate, onInterview
 
   const handleLaunchFullInterview = () => {
     setSelectionWarning(false);
+    setInterviewConfig(prev => ({
+      ...prev,
+      practiceMode: 'full',
+      roundType: null,
+      initialQuestion: null
+    }));
     setStage('lobby');
   };
 
@@ -60,9 +67,12 @@ export default function MockInterviewPage({ currentUser, onNavigate, onInterview
     setInterviewConfig(prev => ({
       ...prev,
       practiceMode: 'targeted',
-      roundType: roundType
+      roundType: roundType,
+      initialQuestion: null
     }));
-    if (roundType === 'GD') {
+    if (roundType === 'Aptitude') {
+      setStage('aptitude-studio');
+    } else if (roundType === 'GD') {
       setShowGDOnboarding(true);
     } else {
       setStage('lobby');
@@ -148,6 +158,12 @@ export default function MockInterviewPage({ currentUser, onNavigate, onInterview
       if (res && res.ok) {
         const data = await res.json();
         setCurrentSessionId(data.sessionId || `SESSION_${Date.now()}`);
+        if (data.currentQuestion) {
+          setInterviewConfig(prev => ({
+            ...prev,
+            initialQuestion: data.currentQuestion
+          }));
+        }
       } else {
         setCurrentSessionId(`SESSION_${Date.now()}`);
       }
@@ -550,6 +566,13 @@ export default function MockInterviewPage({ currentUser, onNavigate, onInterview
           </div>
 
         </div>
+      )}
+
+      {/* Stage 2: Aptitude MCQ Practice Studio */}
+      {stage === 'aptitude-studio' && (
+        <AptitudePracticeStudio 
+          onBackToSetup={() => setStage('setup')}
+        />
       )}
 
       {/* Stage 2: Camera/Mic Permissions Test Lobby */}
