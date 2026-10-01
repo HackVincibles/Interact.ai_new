@@ -240,12 +240,21 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
   };
 
   // Vapi AI Voice Engine Initialization & Event Handling
+  const isStartedRef = useRef(false);
+
   useEffect(() => {
+    if (isStartedRef.current) return;
+    isStartedRef.current = true;
+
     const publicKey = import.meta.env.VITE_VAPI_PUBLIC_KEY;
     const assistantId = import.meta.env.VITE_VAPI_ASSISTANT_ID;
 
+    console.log('[VAPI DEBUG] initializing');
+    console.log('[VAPI DEBUG] assistantId:', assistantId);
+    console.log('[VAPI DEBUG] public key present:', !!publicKey);
+
     if (!publicKey || !assistantId || publicKey.includes('your-vapi') || assistantId.includes('your-assistant')) {
-      console.warn('Vapi environment variables missing or unconfigured.');
+      console.warn('[VAPI DEBUG] environment variables missing or unconfigured.');
       setVapiError('Vapi AI Voice configuration is missing or invalid. Please check frontend environment variables.');
       setCallStatus('error');
       return;
@@ -257,7 +266,7 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
       vapi = new VapiClass(publicKey);
       vapiRef.current = vapi;
     } catch (err) {
-      console.warn('Vapi SDK initialization error:', err);
+      console.warn('[VAPI DEBUG] SDK initialization error:', err);
       setVapiError('Failed to initialize Vapi voice client: ' + (err.message || 'Unknown error'));
       setCallStatus('error');
       return;
@@ -265,31 +274,45 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
 
     // Register Supported Vapi Listeners
     vapi.on('call-start', () => {
+      console.log('[VAPI DEBUG] call-start');
       setCallStatus('active');
       setVapiError(null);
+      if (vapiRef.current) {
+        try { vapiRef.current.setMuted(!isMicOn); } catch (e) {}
+      }
     });
 
     vapi.on('call-end', () => {
+      console.log('[VAPI DEBUG] call-end');
       setCallStatus('ended');
       setIsAiSpeaking(false);
       setIsListeningUser(false);
     });
 
     vapi.on('speech-start', () => {
+      console.log('[VAPI DEBUG] speech-start (AI speaking)');
       setIsAiSpeaking(true);
       setIsListeningUser(false);
     });
 
     vapi.on('speech-end', () => {
+      console.log('[VAPI DEBUG] speech-end (AI stopped speaking)');
       setIsAiSpeaking(false);
       setIsListeningUser(true);
     });
 
     vapi.on('message', (message) => {
+      console.log('[VAPI DEBUG] message:', message?.type, message?.role, message?.transcriptType || '');
       if (message.type === 'transcript') {
         const text = message.transcript || '';
         const role = message.role;
         const isFinal = message.transcriptType === 'final';
+
+        if (role === 'user') {
+          console.log('[VAPI DEBUG] user transcript:', isFinal ? '[FINAL]' : '[INTERIM]', text);
+        } else if (role === 'assistant') {
+          console.log('[VAPI DEBUG] assistant transcript:', isFinal ? '[FINAL]' : '[INTERIM]', text);
+        }
 
         if (text && text.trim()) {
           const curTime = formatCountdown(totalSeconds - remainingRef.current);
@@ -324,7 +347,7 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
     });
 
     vapi.on('error', (err) => {
-      console.warn('Vapi SDK runtime notice:', err);
+      console.warn('[VAPI DEBUG] error:', err);
       const msg = typeof err === 'string' ? err : (err?.error?.message || err?.message || 'Voice connection notification');
       if (msg && !msg.toLowerCase().includes('destroy') && !msg.toLowerCase().includes('aborted')) {
         setVapiError('Voice Session Notice: ' + msg);
@@ -354,15 +377,17 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
       }
     };
 
+    console.log('[VAPI DEBUG] starting call with assistantId:', assistantId);
     // Start Vapi Call
     vapi.start(assistantId, assistantOverrides).catch((err) => {
-      console.warn('Vapi call start failed:', err);
+      console.warn('[VAPI DEBUG] call start failed:', err);
       setVapiError('Unable to start voice session. Please ensure your microphone permissions and internet connection are active.');
       setCallStatus('error');
     });
 
-    // Cleanup on component unmount
+    // Cleanup on component unmount ONLY
     return () => {
+      console.log('[VAPI DEBUG] cleaning up Vapi instance on unmount');
       if (vapiRef.current) {
         try {
           vapiRef.current.removeAllListeners();
@@ -371,7 +396,7 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
         vapiRef.current = null;
       }
     };
-  }, [currentUser, interviewConfig]);
+  }, []);
 
   // Centralized Safe Interview End Handler
   const handleEndInterview = async () => {

@@ -71,7 +71,7 @@ export const startReminderWorker = () => {
         }
       }
     } catch (err) {
-      console.error("Reminder Worker Error:", err);
+      console.warn("Reminder Worker Notice:", err.message || err);
     }
   }, 60 * 1000); // 1 minute
 };
