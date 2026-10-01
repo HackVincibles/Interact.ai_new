@@ -109,12 +109,19 @@ PHASE 4: You will receive another system message when it's time to conclude.`
       }
     });
 
-    // Start Vapi
-    const assistantId = import.meta.env.VITE_VAPI_ASSISTANT_ID || 'mock-assistant-id';
-    vapi.start(assistantId).catch(e => {
-      console.warn('Vapi start failed (mocking local setup):', e);
+    // Start Vapi — GD uses its own dedicated assistant, NOT the interview assistant
+    const gdAssistantId = import.meta.env.VITE_VAPI_GD_ASSISTANT_ID;
+    console.log('[GD VAPI] Starting GD Moderator. assistantId:', gdAssistantId);
+    if (!gdAssistantId || gdAssistantId.includes('mock')) {
+      console.warn('[GD VAPI] No VITE_VAPI_GD_ASSISTANT_ID configured. GD will run without AI moderator.');
       setCallStatus('active');
-    });
+    } else {
+      vapi.start(gdAssistantId).catch(e => {
+        console.warn('[GD VAPI] Vapi start failed:', e);
+        setCallStatus('active');
+      });
+    }
+
 
     return () => {
       if (vapi) {

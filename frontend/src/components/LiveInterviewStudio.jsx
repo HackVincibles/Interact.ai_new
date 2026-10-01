@@ -377,7 +377,10 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
       }
     };
 
-    console.log('[VAPI DEBUG] starting call with assistantId:', assistantId);
+    console.log('[VAPI PROD DEBUG] component = LiveInterviewStudio');
+    console.log('[VAPI PROD DEBUG] assistantId =', assistantId);
+    console.log('[VAPI PROD DEBUG] publicKeyPresent =', !!publicKey);
+    console.log('[VAPI PROD DEBUG] start count = 1 (guarded by isStartedRef)');
     // Start Vapi Call
     vapi.start(assistantId, assistantOverrides).catch((err) => {
       console.warn('[VAPI DEBUG] call start failed:', err);
