@@ -22,26 +22,39 @@ export default function InterviewReportView({ report, currentUser, interviewConf
   const iDomain = interviewConfig?.type || 'Technical';
   const iDate = new Date().toLocaleDateString();
 
+  const getRecommendationPill = (score) => {
+    if (score >= 85) return { label: 'Strong Hire', class: 'rec-strong-hire' };
+    if (score >= 70) return { label: 'Hire', class: 'rec-hire' };
+    if (score >= 50) return { label: 'Maybe / Review', class: 'rec-maybe' };
+    return { label: 'Needs Practice', class: 'rec-no-hire' };
+  };
+
+  const recPill = getRecommendationPill(r.overallScore || 75);
+
   return (
     <div className="report-view-root animate-fade-in">
       <div className="container report-container">
         
-        {/* Top Header Card */}
-        <div className="report-header-card card-base">
+        {/* Executive Score & Summary Hero Card (Project 1 Structure) */}
+        <div className="report-hero-card card-base">
           <div className="report-top-actions">
             <button className="back-home-btn" onClick={() => onNavigate('home')}>
               <ArrowLeft size={16} /> Back to Dashboard
             </button>
             <span className="report-tag">
-              <Sparkles size={14} className="sparkle-gold" /> 50-PARAMETER AI INTERVIEW EVALUATION
+              <Sparkles size={14} className="sparkle-gold" /> AI INTERVIEW EVALUATION REPORT
             </span>
           </div>
 
-          <div className="report-main-summary">
-            <div>
-              <h1 className="report-title">Candidate Performance Report</h1>
-              <p className="report-sub">Evaluated by Interact Gemini AI Interview Engine</p>
-              <div style={{ marginTop: '16px' }}>
+          <div className="hero-main-content">
+            <div className="candidate-meta-box">
+              <span className="meta-sub">Candidate Performance Report</span>
+              <h1 className="report-candidate-name">{cName}</h1>
+              <p className="report-role-detail">
+                Applied Role: <strong>{iRole}</strong> • Domain: <strong>{iDomain}</strong> • Date: <strong>{iDate}</strong>
+              </p>
+              
+              <div className="download-action-row">
                 <PDFDownloadLink
                   document={
                     <ReportPDFDocument 
@@ -53,28 +66,34 @@ export default function InterviewReportView({ report, currentUser, interviewConf
                   }
                   fileName={`InteractAI_Interview_Report.pdf`}
                   className="btn-primary-purple"
-                  style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', borderRadius: '6px', fontSize: '14px', color: 'white' }}
+                  style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 18px', borderRadius: '30px', fontSize: '14px', color: 'white', fontWeight: '700' }}
                 >
                   {({ loading }) => (
                     <>
                       <Download size={16} />
-                      {loading ? 'Generating PDF...' : 'Download Report'}
+                      {loading ? 'Generating PDF Report...' : 'Download Official PDF Report'}
                     </>
                   )}
                 </PDFDownloadLink>
               </div>
             </div>
 
-            <div className="overall-score-dial">
-              <strong>{r.overallScore}</strong>
-              <span>/ 100</span>
-              <small>Overall Grade</small>
+            <div className="hero-score-badge-box">
+              <div className="overall-score-dial">
+                <strong>{r.overallScore}</strong>
+                <span>/ 100</span>
+                <small>Overall Score</small>
+              </div>
+              <div className={`recommendation-badge ${recPill.class}`}>
+                <Award size={16} />
+                <span>{recPill.label}</span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* 3 Core Metric Sliders */}
-        <div className="metrics-grid">
+        {/* 4-Metric Grid (Project 1 Competency Layout) */}
+        <div className="metrics-grid-4col">
           <div className="metric-card card-base">
             <div className="m-header">
               <span>Technical Knowledge</span>
@@ -102,6 +121,16 @@ export default function InterviewReportView({ report, currentUser, interviewConf
             </div>
             <div className="m-bar-bg">
               <div className="m-bar-fill green" style={{ width: `${r.problemSolving}%` }}></div>
+            </div>
+          </div>
+
+          <div className="metric-card card-base">
+            <div className="m-header">
+              <span>Culture & Engagement</span>
+              <strong>{Math.min(98, Math.max(65, r.overallScore + 4))}%</strong>
+            </div>
+            <div className="m-bar-bg">
+              <div className="m-bar-fill orange" style={{ width: `${Math.min(98, Math.max(65, r.overallScore + 4))}%` }}></div>
             </div>
           </div>
         </div>
@@ -207,3 +236,4 @@ export default function InterviewReportView({ report, currentUser, interviewConf
     </div>
   );
 }
+

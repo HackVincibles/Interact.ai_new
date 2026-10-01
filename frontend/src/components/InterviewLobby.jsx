@@ -146,164 +146,226 @@ export default function InterviewLobby({ onStartInterview, interviewConfig }) {
     <div className="interview-lobby-root animate-fade-in">
       <div className="container lobby-container">
         
-        <div className="lobby-header card-base">
-          <span className="section-label">AI INTERVIEW SETUP & PERMISSIONS LOBBY</span>
-          <h1 className="lobby-title">
-            Preparing Your <span className="purple-gradient-text">{interviewConfig?.type || 'Technical SDE-1'}</span> Interview
-          </h1>
-          <p className="lobby-sub">
-            Please test your camera, microphone, screen share, and system compatibility before launching the AI Interview Studio.
-          </p>
+        {/* Top Header Bar with Navigation & Title */}
+        <div className="lobby-header-bar card-base">
+          <div className="header-titles">
+            <span className="section-label">AI INTERVIEW LOBBY</span>
+            <h1 className="lobby-title">
+              {interviewConfig?.type || 'Technical SDE-1'} Interview Session
+            </h1>
+            <p className="lobby-sub">
+              Target Role: <strong>{interviewConfig?.targetRole || 'Software Development Engineer'}</strong> • Duration: <strong>{interviewConfig?.duration || '30'} Mins</strong>
+            </p>
+          </div>
+          <div className="header-badges">
+            <span className="session-id-pill">Session: {interviewConfig?.roundType || 'Live'}</span>
+          </div>
         </div>
 
+        {/* Main 2-Column Grid Layout (Project 1 Structure) */}
         <div className="lobby-grid-layout">
           
-          {/* Left: Camera & Video Preview Window */}
-          <div className="lobby-left-col card-base">
-            <h3 className="preview-heading">Candidate Camera & Audio Preview</h3>
+          {/* LEFT COLUMN: Candidate Profile & System Checks */}
+          <div className="lobby-left-col space-y-4">
             
-            <div className="video-preview-frame">
-              <video 
-                ref={videoPreviewRef} 
-                autoPlay 
-                playsInline 
-                muted 
-                className="video-element"
-              />
-              {!permissions.camera && (
-                <div className="video-placeholder-overlay">
-                  <Video size={42} className="placeholder-icon" />
-                  <p>Camera feed disabled</p>
-                  <button className="btn-primary-purple test-btn" onClick={requestMediaPermissions}>
-                    Enable Camera & Mic
+            {/* Card 1: Camera Feed & Media Preview */}
+            <div className="card-base lobby-card">
+              <div className="card-header-flex">
+                <h3 className="preview-heading">Candidate Hardware & Media Test</h3>
+                <span className="live-status-dot">Live Preview</span>
+              </div>
+
+              <div className="video-preview-frame">
+                <video 
+                  ref={videoPreviewRef} 
+                  autoPlay 
+                  playsInline 
+                  muted 
+                  className="video-element"
+                />
+                {!permissions.camera && (
+                  <div className="video-placeholder-overlay">
+                    <Video size={42} className="placeholder-icon" />
+                    <p>Camera & Microphone test required</p>
+                    <button className="btn-primary-purple test-btn" onClick={requestMediaPermissions}>
+                      Enable Camera & Mic
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Status Badges Row */}
+              <div className="device-status-row">
+                <div className={`status-badge ${permissions.camera ? 'ok' : 'pending'}`}>
+                  {permissions.camera ? <CheckCircle2 size={15} /> : <AlertCircle size={15} />}
+                  <span>Camera: {permissions.camera ? 'Ready' : 'Not Connected'}</span>
+                </div>
+
+                <div className={`status-badge ${permissions.mic ? 'ok' : 'pending'}`}>
+                  {permissions.mic ? <CheckCircle2 size={15} /> : <AlertCircle size={15} />}
+                  <span>Microphone: {permissions.mic ? 'Ready' : 'Not Connected'}</span>
+                </div>
+
+                <div className={`status-badge ${systemChecks.network === 'ok' ? 'ok' : 'pending'}`}>
+                  {systemChecks.network === 'ok' ? <CheckCircle2 size={15} /> : <Wifi size={15} />}
+                  <span>Network: {systemChecks.network === 'ok' ? 'Stable' : 'Check Ping'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 2: Interactive System Checks & Permissions List */}
+            <div className="card-base lobby-card">
+              <h3 className="checklist-heading">System Verification Checks</h3>
+
+              <div className="permissions-list">
+                <div className="perm-item">
+                  <div className="perm-info">
+                    <Camera size={18} className="perm-icon purple" />
+                    <div>
+                      <strong>Webcam Stream</strong>
+                      <p>Facial engagement and visual feedback</p>
+                    </div>
+                  </div>
+                  <button className={`perm-check-btn ${permissions.camera ? 'active' : ''}`} onClick={requestMediaPermissions}>
+                    {permissions.camera ? '✓ Granted' : 'Allow'}
                   </button>
                 </div>
-              )}
+
+                <div className="perm-item">
+                  <div className="perm-info">
+                    <Mic size={18} className="perm-icon blue" />
+                    <div>
+                      <strong>Microphone Stream</strong>
+                      <p>Voice answer capture and speech recognition</p>
+                    </div>
+                  </div>
+                  <button className={`perm-check-btn ${permissions.mic ? 'active' : ''}`} onClick={requestMediaPermissions}>
+                    {permissions.mic ? '✓ Granted' : 'Allow'}
+                  </button>
+                </div>
+                
+                <div className="perm-item">
+                  <div className="perm-info">
+                    <Wifi size={18} className="perm-icon green" />
+                    <div>
+                      <strong>Network Latency</strong>
+                      <p>Real-time audio/video stream connectivity</p>
+                    </div>
+                  </div>
+                  <button 
+                    className={`perm-check-btn ${systemChecks.network === 'ok' ? 'active' : ''}`} 
+                    onClick={checkNetworkLatency}
+                    disabled={systemChecks.network === 'loading'}
+                  >
+                    {systemChecks.network === 'loading' ? 'Testing...' : (systemChecks.network === 'ok' ? '✓ Stable' : 'Test Ping')}
+                  </button>
+                </div>
+
+                <div className="perm-item">
+                  <div className="perm-info">
+                    <Compass size={18} className="perm-icon orange" />
+                    <div>
+                      <strong>Browser WebRTC Support</strong>
+                      <p>Verify browser compatibility with AI engine</p>
+                    </div>
+                  </div>
+                  <button 
+                    className={`perm-check-btn ${systemChecks.browser === 'ok' ? 'active' : ''}`} 
+                    onClick={checkBrowserCompatibility}
+                    disabled={systemChecks.browser === 'loading'}
+                  >
+                    {systemChecks.browser === 'loading' ? 'Checking...' : (systemChecks.browser === 'ok' ? '✓ Verified' : 'Check Browser')}
+                  </button>
+                </div>
+
+                <div className="perm-item">
+                  <div className="perm-info">
+                    <Monitor size={18} className="perm-icon orange" />
+                    <div>
+                      <strong>Screen Share (Optional)</strong>
+                      <p>Used during live IDE coding verification</p>
+                    </div>
+                  </div>
+                  <button className={`perm-check-btn ${permissions.screen ? 'active' : ''}`} onClick={requestScreenSharePermission}>
+                    {permissions.screen ? '✓ Granted' : 'Allow'}
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <div className="device-status-row">
-              <div className={`status-badge ${permissions.camera ? 'ok' : 'pending'}`}>
-                {permissions.camera ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
-                <span>Camera: {permissions.camera ? 'Ready' : 'Not Connected'}</span>
-              </div>
-
-              <div className={`status-badge ${permissions.mic ? 'ok' : 'pending'}`}>
-                {permissions.mic ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
-                <span>Microphone: {permissions.mic ? 'Ready' : 'Not Connected'}</span>
-              </div>
-            </div>
           </div>
 
-          {/* Right: Permissions Checklist & Start Control */}
-          <div className="lobby-right-col card-base">
-            <h3 className="checklist-heading">Pre-Interview Checklist</h3>
-
-            <div className="permissions-list">
-              <div className="perm-item">
-                <div className="perm-info">
-                  <Camera size={20} className="perm-icon purple" />
-                  <div>
-                    <strong>Camera Permission</strong>
-                    <p>Required for AI facial engagement monitoring</p>
-                  </div>
+          {/* RIGHT COLUMN: Round Information, Guidelines & Launch Actions */}
+          <div className="lobby-right-col space-y-4">
+            
+            {/* Card 1: Active Round Overview */}
+            <div className="card-base lobby-card">
+              <h3 className="checklist-heading">Session Overview & Guidelines</h3>
+              <div className="round-details-box">
+                <div className="detail-row">
+                  <span className="detail-label">Interview Mode:</span>
+                  <span className="detail-value">{interviewConfig?.mode || 'Custom Role & JD'}</span>
                 </div>
-                <button className={`perm-check-btn ${permissions.camera ? 'active' : ''}`} onClick={requestMediaPermissions}>
-                  {permissions.camera ? '✓ Granted' : 'Allow'}
-                </button>
+                <div className="detail-row">
+                  <span className="detail-label">Target Domain:</span>
+                  <span className="detail-value">{interviewConfig?.roundType || 'Technical SDE'}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">Difficulty Level:</span>
+                  <span className="detail-value highlight">{interviewConfig?.difficulty || 'Medium'}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">Session Duration:</span>
+                  <span className="detail-value">{interviewConfig?.duration || '30'} Minutes</span>
+                </div>
               </div>
 
-              <div className="perm-item">
-                <div className="perm-info">
-                  <Mic size={20} className="perm-icon blue" />
-                  <div>
-                    <strong>Microphone Permission</strong>
-                    <p>Required to speak your verbal answers naturally</p>
-                  </div>
+              <div className="guidelines-list">
+                <div className="guideline-item">
+                  <ShieldCheck size={16} className="guide-icon" />
+                  <span>Stay in full-screen mode to prevent tab switch warnings.</span>
                 </div>
-                <button className={`perm-check-btn ${permissions.mic ? 'active' : ''}`} onClick={requestMediaPermissions}>
-                  {permissions.mic ? '✓ Granted' : 'Allow'}
-                </button>
+                <div className="guideline-item">
+                  <ShieldCheck size={16} className="guide-icon" />
+                  <span>Speak clearly into your microphone after AI finishes asking.</span>
+                </div>
               </div>
-              
-              <div className="perm-item">
-                <div className="perm-info">
-                  <Wifi size={20} className="perm-icon green" />
-                  <div>
-                    <strong>Network Latency</strong>
-                    <p>Check if connection is stable for live video</p>
-                  </div>
-                </div>
+            </div>
+
+            {/* Card 2: Consent Checkbox & Action Dock */}
+            <div className="card-base lobby-card">
+              <div className="consent-checkbox-group">
+                <input 
+                  type="checkbox" 
+                  id="lobby-consent"
+                  checked={consentChecked}
+                  onChange={(e) => setConsentChecked(e.target.checked)}
+                />
+                <label htmlFor="lobby-consent">
+                  I agree to allow Interact.ai to process my microphone audio & camera feed to generate real-time feedback and evaluation report.
+                </label>
+              </div>
+
+              <div className="action-dock">
                 <button 
-                  className={`perm-check-btn ${systemChecks.network === 'ok' ? 'active' : ''}`} 
-                  onClick={checkNetworkLatency}
-                  disabled={systemChecks.network === 'loading'}
+                  className="btn-primary-purple launch-studio-btn"
+                  disabled={!canStart}
+                  onClick={() => onStartInterview({ stream: streamRef.current, permissions })}
                 >
-                  {systemChecks.network === 'loading' ? 'Testing...' : (systemChecks.network === 'ok' ? '✓ Stable' : 'Test Network')}
+                  <span>Launch AI Interview Studio</span>
+                  <ArrowRight size={18} />
                 </button>
-              </div>
-
-              <div className="perm-item">
-                <div className="perm-info">
-                  <Compass size={20} className="perm-icon orange" />
-                  <div>
-                    <strong>Browser Compatibility</strong>
-                    <p>Verify browser supports WebRTC & APIs</p>
-                  </div>
-                </div>
+                
                 <button 
-                  className={`perm-check-btn ${systemChecks.browser === 'ok' ? 'active' : ''}`} 
-                  onClick={checkBrowserCompatibility}
-                  disabled={systemChecks.browser === 'loading'}
+                  className="btn-secondary schedule-later-btn"
+                  onClick={() => setIsScheduleOpen(true)}
                 >
-                  {systemChecks.browser === 'loading' ? 'Checking...' : (systemChecks.browser === 'ok' ? '✓ Verified' : 'Check Browser')}
-                </button>
-              </div>
-
-              <div className="perm-item">
-                <div className="perm-info">
-                  <Monitor size={20} className="perm-icon orange" />
-                  <div>
-                    <strong>Screen Sharing (Optional)</strong>
-                    <p>Required for live IDE code execution</p>
-                  </div>
-                </div>
-                <button className={`perm-check-btn ${permissions.screen ? 'active' : ''}`} onClick={requestScreenSharePermission}>
-                  {permissions.screen ? '✓ Granted' : 'Allow'}
+                  <Calendar size={18} />
+                  <span>Schedule for Later</span>
                 </button>
               </div>
             </div>
 
-            <div className="consent-checkbox-group">
-              <input 
-                type="checkbox" 
-                id="lobby-consent"
-                checked={consentChecked}
-                onChange={(e) => setConsentChecked(e.target.checked)}
-              />
-              <label htmlFor="lobby-consent">
-                I agree to let Interact.ai process my interview audio & transcript to generate a 50-parameter candidate performance report.
-              </label>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <button 
-                className="btn-primary-purple launch-studio-btn"
-                disabled={!canStart}
-                onClick={() => onStartInterview({ stream: streamRef.current, permissions })}
-              >
-                <span>Launch AI Interview Studio</span>
-                <ArrowRight size={18} />
-              </button>
-              
-              <button 
-                className="btn-secondary schedule-later-btn"
-                onClick={() => setIsScheduleOpen(true)}
-                style={{ padding: '14px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)', color: 'var(--text-main)', cursor: 'pointer', fontWeight: '500', transition: 'all 0.2s' }}
-              >
-                <Calendar size={18} />
-                <span>Schedule for Later</span>
-              </button>
-            </div>
           </div>
 
         </div>
@@ -321,3 +383,4 @@ export default function InterviewLobby({ onStartInterview, interviewConfig }) {
     </div>
   );
 }
+

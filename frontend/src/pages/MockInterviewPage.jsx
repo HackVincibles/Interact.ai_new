@@ -586,6 +586,7 @@ export default function MockInterviewPage({ currentUser, onNavigate, onInterview
       {/* Stage 3: Real-Time Live AI Studio Stage */}
       {stage === 'studio' && (
         <LiveInterviewStudio 
+          currentUser={currentUser}
           initialStream={activeMediaStream}
           interviewConfig={interviewConfig}
           onFinishInterview={handleFinishInterview}

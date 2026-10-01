@@ -1,6 +1,13 @@
 import pkg from 'pg';
 const { Pool } = pkg;
 import dotenv from 'dotenv';
+import dns from 'node:dns';
+
+// Enable verbatim DNS result order so Node can resolve Supabase IPv6 database hostnames (fixes EAI_AGAIN errors)
+try {
+  dns.setDefaultResultOrder('verbatim');
+} catch (e) {}
+
 dotenv.config();
 
 if (!process.env.DATABASE_URL) {
@@ -13,3 +20,4 @@ export const dbPool = new Pool({
     rejectUnauthorized: false
   }
 });
+
