@@ -199,58 +199,103 @@ export default function MockInterviewPage({ currentUser, onNavigate, onInterview
   const handleFinishInterview = async ({ elapsedSeconds, transcript = [] }) => {
     let finalReport = null;
 
+    // --- Transcript diagnostics ---
+    const candidateTurns = transcript.filter(t => t.sender === 'candidate');
+    const interviewerTurns = transcript.filter(t => t.sender === 'interviewer');
+    const totalChars = transcript.map(t => t.text || '').join('').length;
+
+    console.log('[INTERVIEW REPORT] handleFinishInterview called');
+    console.log('[INTERVIEW REPORT] Transcript entries:', transcript.length);
+    console.log('[INTERVIEW REPORT] Transcript characters:', totalChars);
+    console.log('[INTERVIEW REPORT] Candidate responses:', candidateTurns.length);
+    console.log('[INTERVIEW REPORT] Assistant responses:', interviewerTurns.length);
+    console.log('[INTERVIEW REPORT] Session ID:', currentSessionId);
+
+    if (transcript.length === 0) {
+      console.warn('[INTERVIEW REPORT] Transcript is EMPTY — the interview may have ended before any Vapi transcript was captured.');
+    }
+
     // Try fetching Report from backend
     try {
+      const payload = {
+        sessionId: currentSessionId || `SESSION_${Date.now()}`,
+        answersHistory: transcript,
+        interviewConfig: {
+          type: interviewConfig?.type,
+          targetRole: interviewConfig?.targetRole,
+          practiceMode: interviewConfig?.practiceMode,
+          roundType: interviewConfig?.roundType,
+          duration: interviewConfig?.duration,
+        },
+        elapsedSeconds,
+      };
+
+      console.log('[INTERVIEW REPORT] Sending to /api/interview/report, answersHistory entries:', payload.answersHistory.length);
+
       const res = await fetch(`${API_BASE_URL}/api/interview/report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId: currentSessionId || `SESSION_${Date.now()}`,
-          answersHistory: transcript,
-        }),
-      }).catch(() => null);
+        body: JSON.stringify(payload),
+      }).catch(err => {
+        console.error('[INTERVIEW REPORT] Network error reaching report API:', err);
+        return null;
+      });
 
       if (res && res.ok) {
         const data = await res.json();
         finalReport = data.report;
+        console.log('[INTERVIEW REPORT] Backend report received. overallScore:', finalReport?.overallScore);
+      } else {
+        console.warn('[INTERVIEW REPORT] Backend returned non-OK status:', res?.status);
       }
     } catch (e) {
-      console.warn('Report fetch notice:', e);
+      console.error('[INTERVIEW REPORT] Exception calling report API:', e);
     }
 
-    // Fallback report if backend API failed or returned empty
+    // Fallback report only if backend completely failed (network error / crash)
+    // NOTE: This is NOT a score fabrication — it's a UI error state disguised as a report
     if (!finalReport) {
-      const candidateTurns = (transcript || []).filter(t => t.sender === 'candidate');
-      const score = Math.min(95, Math.max(60, 70 + candidateTurns.length * 5));
-      finalReport = {
-        overallScore: score,
-        technicalKnowledge: Math.min(92, score + 2),
-        communication: Math.min(95, score + 5),
-        problemSolving: Math.min(90, score - 2),
-        strengths: [
-          "Demonstrated clear technical articulation under real-time countdown pressure.",
-          "Strong domain knowledge and logical problem solving approach.",
-          "Active engagement with live interviewer questions and coding IDE."
-        ],
-        weaknesses: [
-          "Could dive deeper into memory complexity and edge-case scaling details.",
-          "Consider expanding on architectural tradeoffs during system design questions."
-        ],
-        topicsToImprove: ["Data Structures & Algorithms", "System Scalability", "Edge Case Testing"],
-        questionFeedback: (transcript || [])
-          .filter(t => t.sender === 'interviewer')
-          .map((qItem, idx) => {
-            const correspondingUserAns = transcript.find((u, uIdx) => uIdx > transcript.indexOf(qItem) && u.sender === 'candidate');
+      console.warn('[INTERVIEW REPORT] Backend report generation failed. Using transcript-based fallback.');
+
+      if (candidateTurns.length === 0) {
+        // No transcript at all — show real error
+        finalReport = {
+          overallScore: 0,
+          technicalKnowledge: 0,
+          communication: 0,
+          problemSolving: 0,
+          strengths: [],
+          weaknesses: ['Interview ended without capturing a transcript. This may be a Vapi microphone or browser permission issue.'],
+          topicsToImprove: ['Ensure microphone access is granted before starting the interview.'],
+          questionFeedback: [],
+          recommendedPractice: 'Please retry the interview. Ensure microphone permissions are enabled and the interview is at least 2 minutes long.',
+          _error: 'no_transcript',
+        };
+      } else {
+        // Transcript exists but backend failed — build minimal report from transcript data
+        finalReport = {
+          overallScore: null,
+          technicalKnowledge: null,
+          communication: null,
+          problemSolving: null,
+          strengths: [],
+          weaknesses: [],
+          topicsToImprove: [],
+          questionFeedback: interviewerTurns.map((qItem, idx) => {
+            const qIdx = transcript.indexOf(qItem);
+            const correspondingAns = transcript.find((u, uIdx) => uIdx > qIdx && u.sender === 'candidate');
             return {
               q: qItem.text || `Interview Question ${idx + 1}`,
-              score: Math.min(95, 75 + idx * 5),
-              note: "Good response with logical explanation.",
-              userAnswer: correspondingUserAns?.text || "Answered during live session.",
-              idealAnswer: "A complete answer covers system architecture, optimal data structures, and edge-case error handling."
+              score: null,
+              note: 'AI evaluation unavailable (backend error). Review your answer below.',
+              userAnswer: correspondingAns?.text || '(no answer captured)',
+              idealAnswer: '',
             };
           }),
-        recommendedPractice: "Continue practicing targeted coding & technical interview rounds to master high-pressure technical interviews."
-      };
+          recommendedPractice: 'AI evaluation failed. Your transcript was captured but scoring could not be generated. Please contact support or retry.',
+          _error: 'backend_failed',
+        };
+      }
     }
 
     setReportData(finalReport);
@@ -268,14 +313,14 @@ export default function MockInterviewPage({ currentUser, onNavigate, onInterview
     // Issue certificate
     try {
       const token = localStorage.getItem('interact_token');
-      if (token && (currentSessionId || typeof sessionId !== 'undefined')) {
+      if (token && currentSessionId) {
          await fetch(`${API_BASE_URL}/api/certificates/issue/interview`, {
             method: 'POST',
             headers: { 
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify({ sessionId: currentSessionId || 'SESSION_LIVE_123' })
+            body: JSON.stringify({ sessionId: currentSessionId })
          });
       }
     } catch (e) {
@@ -284,6 +329,7 @@ export default function MockInterviewPage({ currentUser, onNavigate, onInterview
 
     setStage('report');
   };
+
 
   const practiceCards = [
     { id: 'Aptitude', icon: <Brain size={24} />, title: 'Aptitude', desc: 'Quantitative & Logical' },

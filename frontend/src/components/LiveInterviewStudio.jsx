@@ -406,29 +406,50 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
     if (isEndingRef.current) return;
     isEndingRef.current = true;
 
-    // 1. Terminate Vapi Call
+    // 1. Stop Vapi call gracefully (do NOT removeAllListeners yet — we need message events to flush)
+    if (vapiRef.current) {
+      try {
+        vapiRef.current.stop();
+      } catch (e) {
+        console.warn('Error stopping Vapi session:', e);
+      }
+    }
+
+    // 2. Wait for any pending final transcript events to settle (Vapi may emit final transcripts after stop())
+    await new Promise(resolve => setTimeout(resolve, 1800));
+
+    // 3. Now remove listeners and null the ref
     if (vapiRef.current) {
       try {
         vapiRef.current.removeAllListeners();
-        vapiRef.current.stop();
-      } catch (e) {
-        console.warn('Error terminating Vapi session:', e);
-      }
+      } catch (e) {}
       vapiRef.current = null;
     }
 
-    // 2. Stop camera/mic media tracks if active
+    // 4. Stop camera/mic media tracks if active
     if (initialStream) {
       initialStream.getTracks().forEach(t => t.stop());
     }
 
-    // 3. Trigger completion callback with accumulated transcript
+    // 5. Capture final transcript from ref (always use ref, not state)
+    const finalTranscript = transcriptRef.current || [];
+    const candidateEntries = finalTranscript.filter(t => t.sender === 'candidate');
+    const interviewerEntries = finalTranscript.filter(t => t.sender === 'interviewer');
+
+    console.log('[INTERVIEW REPORT] Preparing final report');
+    console.log('[INTERVIEW REPORT] Transcript entries:', finalTranscript.length);
+    console.log('[INTERVIEW REPORT] Transcript characters:', finalTranscript.map(t => t.text).join('').length);
+    console.log('[INTERVIEW REPORT] Candidate responses:', candidateEntries.length);
+    console.log('[INTERVIEW REPORT] Assistant responses:', interviewerEntries.length);
+
+    // 6. Trigger completion callback with finalized transcript
     const elapsedSeconds = totalSeconds - remainingRef.current;
     onFinishInterview({
       elapsedSeconds,
-      transcript: transcriptRef.current
+      transcript: finalTranscript
     });
   };
+
 
   // Countdown Clock Timer
   useEffect(() => {

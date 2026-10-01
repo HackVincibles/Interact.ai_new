@@ -56,15 +56,32 @@ export const getNextAdaptiveQuestion = async (req, res, next) => {
 
 export const getReport = async (req, res, next) => {
   try {
-    const result = await LangGraphInterviewService.generateFinalReport(req.body);
+    const { sessionId, answersHistory = [], interviewConfig = {} } = req.body;
+
+    console.log('[REPORT API] POST /api/interview/report called');
+    console.log('[REPORT API] sessionId:', sessionId);
+    console.log('[REPORT API] answersHistory entries:', answersHistory.length);
+
+    const result = await LangGraphInterviewService.generateFinalReport({
+      sessionId,
+      answersHistory,
+      interviewConfig,
+    });
+
     res.json({
       success: true,
       report: result,
     });
   } catch (error) {
-    next(error);
+    console.error('[REPORT ERROR]', error.message);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      report: null,
+    });
   }
 };
+
 
 export const getReportById = async (req, res, next) => {
   try {

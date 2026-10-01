@@ -22,14 +22,21 @@ export default function InterviewReportView({ report, currentUser, interviewConf
   const iDomain = interviewConfig?.type || 'Technical';
   const iDate = new Date().toLocaleDateString();
 
+  // Helper: display score as number or 'N/A' if null/undefined
+  const fmt = (v) => (v != null && typeof v === 'number') ? v : 'N/A';
+  const fmtPct = (v) => (v != null && typeof v === 'number') ? `${v}%` : 'N/A';
+  const fmtWidth = (v) => (v != null && typeof v === 'number') ? `${v}%` : '0%';
+
   const getRecommendationPill = (score) => {
+    if (score == null) return { label: 'Evaluating...', class: 'rec-maybe' };
     if (score >= 85) return { label: 'Strong Hire', class: 'rec-strong-hire' };
     if (score >= 70) return { label: 'Hire', class: 'rec-hire' };
     if (score >= 50) return { label: 'Maybe / Review', class: 'rec-maybe' };
     return { label: 'Needs Practice', class: 'rec-no-hire' };
   };
 
-  const recPill = getRecommendationPill(r.overallScore || 75);
+  const recPill = getRecommendationPill(r.overallScore);
+  const cultureScore = (r.overallScore != null) ? Math.min(98, Math.max(65, r.overallScore + 4)) : null;
 
   return (
     <div className="report-view-root animate-fade-in">
@@ -79,8 +86,13 @@ export default function InterviewReportView({ report, currentUser, interviewConf
             </div>
 
             <div className="hero-score-badge-box">
+              {r._error && (
+                <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: '10px', padding: '10px 16px', marginBottom: '12px', color: '#f87171', fontSize: '0.85rem' }}>
+                  ⚠️ {r._error === 'no_transcript' ? 'No transcript was captured. Please retry with an active microphone.' : 'AI evaluation could not be generated. Your transcript was captured. Contact support if this persists.'}
+                </div>
+              )}
               <div className="overall-score-dial">
-                <strong>{r.overallScore}</strong>
+                <strong>{fmt(r.overallScore)}</strong>
                 <span>/ 100</span>
                 <small>Overall Score</small>
               </div>
@@ -97,40 +109,40 @@ export default function InterviewReportView({ report, currentUser, interviewConf
           <div className="metric-card card-base">
             <div className="m-header">
               <span>Technical Knowledge</span>
-              <strong>{r.technicalKnowledge}%</strong>
+              <strong>{fmtPct(r.technicalKnowledge)}</strong>
             </div>
             <div className="m-bar-bg">
-              <div className="m-bar-fill purple" style={{ width: `${r.technicalKnowledge}%` }}></div>
+              <div className="m-bar-fill purple" style={{ width: fmtWidth(r.technicalKnowledge) }}></div>
             </div>
           </div>
 
           <div className="metric-card card-base">
             <div className="m-header">
               <span>Communication & Clarity</span>
-              <strong>{r.communication}%</strong>
+              <strong>{fmtPct(r.communication)}</strong>
             </div>
             <div className="m-bar-bg">
-              <div className="m-bar-fill blue" style={{ width: `${r.communication}%` }}></div>
+              <div className="m-bar-fill blue" style={{ width: fmtWidth(r.communication) }}></div>
             </div>
           </div>
 
           <div className="metric-card card-base">
             <div className="m-header">
               <span>Problem Solving & Logic</span>
-              <strong>{r.problemSolving}%</strong>
+              <strong>{fmtPct(r.problemSolving)}</strong>
             </div>
             <div className="m-bar-bg">
-              <div className="m-bar-fill green" style={{ width: `${r.problemSolving}%` }}></div>
+              <div className="m-bar-fill green" style={{ width: fmtWidth(r.problemSolving) }}></div>
             </div>
           </div>
 
           <div className="metric-card card-base">
             <div className="m-header">
               <span>Culture & Engagement</span>
-              <strong>{Math.min(98, Math.max(65, r.overallScore + 4))}%</strong>
+              <strong>{fmtPct(cultureScore)}</strong>
             </div>
             <div className="m-bar-bg">
-              <div className="m-bar-fill orange" style={{ width: `${Math.min(98, Math.max(65, r.overallScore + 4))}%` }}></div>
+              <div className="m-bar-fill orange" style={{ width: fmtWidth(cultureScore) }}></div>
             </div>
           </div>
         </div>
@@ -189,8 +201,8 @@ export default function InterviewReportView({ report, currentUser, interviewConf
                   <div key={idx} className="q-fb-item">
                     <div className="q-fb-header">
                       <strong>Q{idx + 1}: {item.q}</strong>
-                      <span className={`q-score-badge ${item.score >= 70 ? 'score-good' : item.score >= 40 ? 'score-mid' : 'score-low'}`}>
-                        {item.score}/100
+                      <span className={`q-score-badge ${item.score == null ? 'score-mid' : item.score >= 70 ? 'score-good' : item.score >= 40 ? 'score-mid' : 'score-low'}`}>
+                        {item.score != null ? `${item.score}/100` : 'N/A'}
                       </span>
                     </div>
                     <p className="q-fb-note">{item.note}</p>

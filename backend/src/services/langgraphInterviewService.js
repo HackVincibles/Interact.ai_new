@@ -243,107 +243,164 @@ Return JSON format strictly:
   }
 
   /**
-   * Generates a 50-Parameter Final AI Evaluation Report upon completion.
+   * Generates a comprehensive AI Evaluation Report from the actual Vapi transcript.
+   * @param {object} params
+   * @param {string} params.sessionId
+   * @param {Array}  params.answersHistory - [{sender: 'interviewer'|'candidate', text, time}]
+   * @param {object} [params.interviewConfig] - optional config with roundType, practiceMode etc.
    */
-  static async generateFinalReport({ sessionId, answersHistory = [], evaluationsHistory = [] }) {
-    let practiceMode = 'full';
-    let roundType = null;
-    let interviewDomain = '';
+  static async generateFinalReport({ sessionId, answersHistory = [], interviewConfig = {} }) {
+    console.log('[REPORT API] Received transcript');
+    console.log('[REPORT API] Transcript entries:', answersHistory.length);
+    console.log('[REPORT API] Transcript characters:', answersHistory.map(h => h.text || '').join('').length);
 
+    let practiceMode = interviewConfig?.practiceMode || 'full';
+    let roundType = interviewConfig?.roundType || null;
+    let interviewDomain = interviewConfig?.type || '';
+
+    // Load session metadata from DB if a real session ID was saved
     if (sessionId && !sessionId.startsWith('SESSION_')) {
-      const interview = await InterviewModel.getInterviewById(sessionId);
-      if (interview) {
-        practiceMode = interview.practice_mode || 'full';
-        roundType = interview.round_type;
-        interviewDomain = interview.domain || '';
+      try {
+        const interview = await InterviewModel.getInterviewById(sessionId);
+        if (interview) {
+          practiceMode = interview.practice_mode || practiceMode;
+          roundType = interview.round_type || roundType;
+          interviewDomain = interview.domain || interviewDomain;
+          console.log('[REPORT API] Loaded session from DB. domain:', interviewDomain, 'roundType:', roundType);
+        }
+      } catch (dbErr) {
+        console.warn('[REPORT API] Could not load session from DB:', dbErr.message);
       }
     }
 
-    const transcriptText = answersHistory.map(h => `${h.sender === 'interviewer' ? 'Interviewer' : 'Candidate'}: ${h.text}`).join('\n');
+    // Build normalized transcript text from Vapi messages
+    // Input format: [{sender: 'interviewer'|'candidate', text: '...', time: '...'}, ...]
+    const normalizedLines = answersHistory
+      .filter(h => h && h.text && h.text.trim().length > 0)
+      .map(h => `${h.sender === 'interviewer' ? 'Interviewer' : 'Candidate'}: ${h.text.trim()}`);
 
-    let reportPrompt = '';
-    if (practiceMode === 'targeted') {
-      reportPrompt = `
-You are an expert AI Interviewer. Evaluate this transcript for a targeted '${roundType}' practice session (Domain: ${interviewDomain}). 
-Generate a comprehensive report based ONLY on this candidate's actual performance. Do not use generic feedback; refer to specific things the candidate said.
-If the candidate did not answer any questions, give them a score of 0 and state that they did not participate.
+    const transcriptText = normalizedLines.join('\n');
+    const candidateLines = answersHistory.filter(h => h.sender === 'candidate' && h.text?.trim());
 
-Interview Transcript:
-${transcriptText || '(No transcript provided)'}
+    console.log('[REPORT API] Normalized transcript lines:', normalizedLines.length);
+    console.log('[REPORT API] Candidate speaking turns:', candidateLines.length);
 
-Return ONLY valid JSON format with schema exactly matching:
-{
-  "overallScore": number (0-100),
-  "technicalKnowledge": number (0-100),
-  "communication": number (0-100),
-  "problemSolving": number (0-100),
-  "strengths": ["...", "..."],
-  "weaknesses": ["...", "..."],
-  "topicsToImprove": ["...", "..."],
-  "questionFeedback": [
-    { "q": "the full question asked", "score": number, "note": "specific feedback on their answer", "userAnswer": "a concise summary of what the candidate actually said", "idealAnswer": "a concise model answer they should have given" }
-  ],
-  "recommendedPractice": "actionable study plan"
-}
-`;
-    } else {
-      reportPrompt = `
-You are an expert AI Tech Interviewer. Evaluate this interview transcript and generate a comprehensive AI Candidate Interview Report based ONLY on this candidate's actual performance. Do not use generic feedback; refer to specific things the candidate said.
-If the candidate did not answer any questions or the transcript is empty/too short, give them a score of 0 and state that they did not participate.
-
-Interview Transcript:
-${transcriptText || '(No transcript provided)'}
-
-Return ONLY valid JSON format with schema exactly matching:
-{
-  "overallScore": number (0-100),
-  "technicalKnowledge": number (0-100),
-  "communication": number (0-100),
-  "problemSolving": number (0-100),
-  "strengths": ["...", "..."],
-  "weaknesses": ["...", "..."],
-  "topicsToImprove": ["...", "..."],
-  "questionFeedback": [
-    { "q": "the full question asked", "score": number, "note": "specific feedback on their answer", "userAnswer": "a concise summary of what the candidate actually said", "idealAnswer": "a concise model answer they should have given" }
-  ],
-  "recommendedPractice": "actionable study plan"
-}
-`;
+    if (normalizedLines.length === 0) {
+      console.warn('[REPORT API] Transcript is empty — returning zero report');
+      return {
+        overallScore: 0,
+        technicalKnowledge: 0,
+        communication: 0,
+        problemSolving: 0,
+        strengths: [],
+        weaknesses: ['No interview transcript was captured. The candidate may not have spoken or the session ended prematurely.'],
+        topicsToImprove: ['Ensure microphone is active during the interview.'],
+        questionFeedback: [],
+        recommendedPractice: 'Please retry the interview with an active microphone and complete at least 3 full question-answer turns.',
+        _error: 'empty_transcript',
+      };
     }
 
-    let report = {
-      overallScore: 0,
-      technicalKnowledge: 0,
-      communication: 0,
-      problemSolving: 0,
-      strengths: ['No data (Interview aborted or failed to parse)'],
-      weaknesses: ['No data'],
-      topicsToImprove: ['No data'],
-      questionFeedback: [],
-      recommendedPractice: 'Complete an interview to generate a report.',
-    };
+    const reportPrompt = `You are an expert AI Interviewer tasked with evaluating a candidate's interview performance.
+${practiceMode === 'targeted' ? `This was a targeted '${roundType}' practice session (Domain: ${interviewDomain}).` : `This was a ${interviewDomain || 'Technical'} mock interview.`}
 
+Evaluate the candidate's ACTUAL responses below. Do NOT use generic feedback. Reference specific things the candidate said.
+If the transcript has fewer than 3 candidate turns, give appropriate lower scores reflecting the limited participation.
+
+Interview Transcript:
+${transcriptText}
+
+Return ONLY a single valid JSON object with EXACTLY this schema (no markdown, no explanation, just JSON):
+{
+  "overallScore": <integer 0-100>,
+  "technicalKnowledge": <integer 0-100>,
+  "communication": <integer 0-100>,
+  "problemSolving": <integer 0-100>,
+  "strengths": ["<strength 1>", "<strength 2>"],
+  "weaknesses": ["<weakness 1>", "<weakness 2>"],
+  "topicsToImprove": ["<topic 1>", "<topic 2>"],
+  "questionFeedback": [
+    {
+      "q": "<the full question asked by the interviewer>",
+      "score": <integer 0-100>,
+      "note": "<specific feedback referencing what the candidate actually said>",
+      "userAnswer": "<concise summary of what the candidate said>",
+      "idealAnswer": "<concise model answer>"
+    }
+  ],
+  "recommendedPractice": "<actionable 2-3 sentence study recommendation>"
+}`;
+
+    console.log('[REPORT API] Generating AI evaluation with Gemini...');
+
+    let rawText = '';
     try {
       const result = await geminiFlash.generateContent(reportPrompt);
-      const text = result.response.text();
-      // Safely extract JSON between first { and last }
-      const firstBrace = text.indexOf('{');
-      const lastBrace = text.lastIndexOf('}');
-      if (firstBrace !== -1 && lastBrace !== -1) {
-        const jsonStr = text.substring(firstBrace, lastBrace + 1);
-        report = JSON.parse(jsonStr);
-      } else {
-        console.warn('Gemini report generation failed to produce JSON:', text);
-      }
-
-    } catch (e) {
-      console.warn('Gemini report generation notice:', e.message);
+      rawText = result.response.text();
+      console.log('[REPORT AI] Raw Gemini response length:', rawText.length);
+    } catch (geminiErr) {
+      console.error('[REPORT AI] Gemini generateContent failed:', geminiErr.message);
+      throw new Error(`AI evaluation failed: ${geminiErr.message}`);
     }
 
+    // Safe JSON extraction — handles plain JSON or markdown-fenced JSON
+    let report = null;
+    try {
+      // Try direct parse first
+      report = JSON.parse(rawText.trim());
+    } catch (_) {
+      // Strip markdown code fences if present
+      const stripped = rawText
+        .replace(/^```json\s*/i, '')
+        .replace(/^```\s*/i, '')
+        .replace(/\s*```$/i, '')
+        .trim();
+      try {
+        report = JSON.parse(stripped);
+      } catch (_2) {
+        // Last resort: extract JSON between first { and last }
+        const firstBrace = rawText.indexOf('{');
+        const lastBrace = rawText.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+          try {
+            report = JSON.parse(rawText.substring(firstBrace, lastBrace + 1));
+          } catch (parseErr) {
+            console.error('[REPORT AI] All JSON parsing attempts failed. Raw text snippet:', rawText.slice(0, 400));
+            throw new Error(`Failed to parse AI evaluation JSON: ${parseErr.message}`);
+          }
+        } else {
+          console.error('[REPORT AI] No JSON object found in Gemini response. Raw text snippet:', rawText.slice(0, 400));
+          throw new Error('AI evaluation returned no parseable JSON.');
+        }
+      }
+    }
+
+    // Validate required fields
+    if (typeof report.overallScore !== 'number') {
+      console.error('[REPORT AI] Validation failed — overallScore is not a number:', report.overallScore);
+      throw new Error('AI evaluation returned invalid report: overallScore missing.');
+    }
+
+    console.log('[REPORT AI] Evaluation generated successfully');
+    console.log('[REPORT AI] Overall score:', report.overallScore);
+    console.log('[REPORT AI] Technical score:', report.technicalKnowledge);
+    console.log('[REPORT AI] Communication score:', report.communication);
+    console.log('[REPORT AI] Problem solving score:', report.problemSolving);
+    console.log('[REPORT AI] Strengths count:', report.strengths?.length);
+    console.log('[REPORT AI] Question feedback items:', report.questionFeedback?.length);
+
+    // Persist to DB if a real session ID is available
     if (sessionId && !sessionId.startsWith('SESSION_')) {
-      await InterviewModel.updateInterviewReport(sessionId, report);
+      try {
+        await InterviewModel.updateInterviewReport(sessionId, report);
+        console.log('[REPORT API] Report saved to DB for session:', sessionId);
+      } catch (dbSaveErr) {
+        console.error('[REPORT API] Failed to save report to DB:', dbSaveErr.message);
+        // Return report anyway — don't fail the user just because DB save failed
+      }
     }
 
     return report;
   }
+
 }
