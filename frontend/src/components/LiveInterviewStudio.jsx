@@ -310,8 +310,14 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
 
         if (role === 'user') {
           console.log('[VAPI DEBUG] user transcript:', isFinal ? '[FINAL]' : '[INTERIM]', text);
+          if (isFinal) {
+            console.log('[INTERVIEW TRANSCRIPT] candidate final:', text.trim());
+          }
         } else if (role === 'assistant') {
           console.log('[VAPI DEBUG] assistant transcript:', isFinal ? '[FINAL]' : '[INTERIM]', text);
+          if (isFinal) {
+            console.log('[INTERVIEW TRANSCRIPT] assistant final:', text.trim());
+          }
         }
 
         if (text && text.trim()) {

@@ -250,9 +250,12 @@ Return JSON format strictly:
    * @param {object} [params.interviewConfig] - optional config with roundType, practiceMode etc.
    */
   static async generateFinalReport({ sessionId, answersHistory = [], interviewConfig = {} }) {
-    console.log('[REPORT API] Received transcript');
-    console.log('[REPORT API] Transcript entries:', answersHistory.length);
-    console.log('[REPORT API] Transcript characters:', answersHistory.map(h => h.text || '').join('').length);
+    const candidateLines = answersHistory.filter(h => (h.sender === 'candidate' || h.role === 'user') && h.text?.trim());
+    const totalChars = answersHistory.map(h => h.text || '').join('').length;
+
+    console.log('[REPORT API] Received transcript entries:', answersHistory.length);
+    console.log('[REPORT API] Candidate responses:', candidateLines.length);
+    console.log('[REPORT API] Transcript characters:', totalChars);
 
     let practiceMode = interviewConfig?.practiceMode || 'full';
     let roundType = interviewConfig?.roundType || null;
@@ -274,38 +277,43 @@ Return JSON format strictly:
     }
 
     // Build normalized transcript text from Vapi messages
-    // Input format: [{sender: 'interviewer'|'candidate', text: '...', time: '...'}, ...]
     const normalizedLines = answersHistory
       .filter(h => h && h.text && h.text.trim().length > 0)
-      .map(h => `${h.sender === 'interviewer' ? 'Interviewer' : 'Candidate'}: ${h.text.trim()}`);
+      .map(h => `${(h.sender === 'interviewer' || h.role === 'assistant') ? 'Interviewer' : 'Candidate'}: ${h.text.trim()}`);
 
     const transcriptText = normalizedLines.join('\n');
-    const candidateLines = answersHistory.filter(h => h.sender === 'candidate' && h.text?.trim());
 
-    console.log('[REPORT API] Normalized transcript lines:', normalizedLines.length);
-    console.log('[REPORT API] Candidate speaking turns:', candidateLines.length);
-
-    if (normalizedLines.length === 0) {
-      console.warn('[REPORT API] Transcript is empty — returning zero report');
+    if (normalizedLines.length === 0 || candidateLines.length === 0) {
+      console.warn('[REPORT API] Transcript is empty — returning empty transcript error report');
       return {
-        overallScore: 0,
-        technicalKnowledge: 0,
-        communication: 0,
-        problemSolving: 0,
+        overallScore: null,
+        technicalKnowledge: null,
+        communication: null,
+        problemSolving: null,
         strengths: [],
         weaknesses: ['No interview transcript was captured. The candidate may not have spoken or the session ended prematurely.'],
         topicsToImprove: ['Ensure microphone is active during the interview.'],
         questionFeedback: [],
-        recommendedPractice: 'Please retry the interview with an active microphone and complete at least 3 full question-answer turns.',
+        recommendedPractice: 'Report generation failed: No interview transcript was available.',
         _error: 'empty_transcript',
       };
     }
 
-    const reportPrompt = `You are an expert AI Interviewer tasked with evaluating a candidate's interview performance.
-${practiceMode === 'targeted' ? `This was a targeted '${roundType}' practice session (Domain: ${interviewDomain}).` : `This was a ${interviewDomain || 'Technical'} mock interview.`}
+    console.log('[REPORT AI] Preparing evaluation');
+    console.log('[REPORT AI] Interview type:', interviewDomain || roundType || 'Technical');
+    console.log('[REPORT AI] Transcript entries:', normalizedLines.length);
+    console.log('[REPORT AI] Transcript characters:', transcriptText.length);
 
-Evaluate the candidate's ACTUAL responses below. Do NOT use generic feedback. Reference specific things the candidate said.
-If the transcript has fewer than 3 candidate turns, give appropriate lower scores reflecting the limited participation.
+    const reportPrompt = `You are an expert AI Interviewer tasked with evaluating a candidate's interview performance.
+Interview Context: Domain="${interviewDomain || 'General'}", PracticeMode="${practiceMode}", RoundType="${roundType || 'General'}".
+
+Evaluation instructions per round type:
+- If HR/General round: Evaluate communication, behavioral clarity, situational judgment, and relevance.
+- If Technical round: Evaluate domain knowledge, technical terminology accuracy, and logic.
+- If Coding round: Evaluate problem-solving approach, algorithmic thinking, and structural code breakdown.
+
+Evaluate the candidate's ACTUAL responses below. Do NOT use generic feedback. Reference specific details the candidate mentioned.
+If the transcript has fewer than 3 candidate turns, give appropriate scores reflecting the limited participation.
 
 Interview Transcript:
 ${transcriptText}
@@ -331,8 +339,6 @@ Return ONLY a single valid JSON object with EXACTLY this schema (no markdown, no
   "recommendedPractice": "<actionable 2-3 sentence study recommendation>"
 }`;
 
-    console.log('[REPORT API] Generating AI evaluation with Gemini...');
-
     let rawText = '';
     try {
       const result = await geminiFlash.generateContent(reportPrompt);
@@ -343,13 +349,11 @@ Return ONLY a single valid JSON object with EXACTLY this schema (no markdown, no
       throw new Error(`AI evaluation failed: ${geminiErr.message}`);
     }
 
-    // Safe JSON extraction — handles plain JSON or markdown-fenced JSON
+    // Safe JSON extraction — handles plain JSON, markdown-fenced JSON, or embedded JSON
     let report = null;
     try {
-      // Try direct parse first
       report = JSON.parse(rawText.trim());
     } catch (_) {
-      // Strip markdown code fences if present
       const stripped = rawText
         .replace(/^```json\s*/i, '')
         .replace(/^```\s*/i, '')
@@ -358,7 +362,6 @@ Return ONLY a single valid JSON object with EXACTLY this schema (no markdown, no
       try {
         report = JSON.parse(stripped);
       } catch (_2) {
-        // Last resort: extract JSON between first { and last }
         const firstBrace = rawText.indexOf('{');
         const lastBrace = rawText.lastIndexOf('}');
         if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
@@ -376,8 +379,8 @@ Return ONLY a single valid JSON object with EXACTLY this schema (no markdown, no
     }
 
     // Validate required fields
-    if (typeof report.overallScore !== 'number') {
-      console.error('[REPORT AI] Validation failed — overallScore is not a number:', report.overallScore);
+    if (!report || typeof report !== 'object' || typeof report.overallScore !== 'number') {
+      console.error('[REPORT AI] Validation failed — overallScore is missing or not a number:', report);
       throw new Error('AI evaluation returned invalid report: overallScore missing.');
     }
 
@@ -386,17 +389,21 @@ Return ONLY a single valid JSON object with EXACTLY this schema (no markdown, no
     console.log('[REPORT AI] Technical score:', report.technicalKnowledge);
     console.log('[REPORT AI] Communication score:', report.communication);
     console.log('[REPORT AI] Problem solving score:', report.problemSolving);
-    console.log('[REPORT AI] Strengths count:', report.strengths?.length);
-    console.log('[REPORT AI] Question feedback items:', report.questionFeedback?.length);
 
-    // Persist to DB if a real session ID is available
-    if (sessionId && !sessionId.startsWith('SESSION_')) {
+    // Persist to DB if a session ID is available
+    if (sessionId) {
+      console.log('[REPORT DB] Saving report');
+      console.log('[REPORT DB] Interview ID:', sessionId);
+      console.log('[REPORT DB] Overall score:', report.overallScore);
       try {
-        await InterviewModel.updateInterviewReport(sessionId, report);
-        console.log('[REPORT API] Report saved to DB for session:', sessionId);
+        const saved = await InterviewModel.updateInterviewReport(sessionId, report);
+        if (saved) {
+          console.log('[REPORT DB] Save successful');
+        } else {
+          console.warn('[REPORT DB] Save update returned no row (ID fallback created)');
+        }
       } catch (dbSaveErr) {
-        console.error('[REPORT API] Failed to save report to DB:', dbSaveErr.message);
-        // Return report anyway — don't fail the user just because DB save failed
+        console.error('[REPORT DB] Failed to save report to DB:', dbSaveErr.message);
       }
     }
 

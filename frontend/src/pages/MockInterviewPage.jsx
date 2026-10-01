@@ -206,10 +206,10 @@ export default function MockInterviewPage({ currentUser, onNavigate, onInterview
 
     console.log('[INTERVIEW REPORT] handleFinishInterview called');
     console.log('[INTERVIEW REPORT] Transcript entries:', transcript.length);
-    console.log('[INTERVIEW REPORT] Transcript characters:', totalChars);
     console.log('[INTERVIEW REPORT] Candidate responses:', candidateTurns.length);
     console.log('[INTERVIEW REPORT] Assistant responses:', interviewerTurns.length);
-    console.log('[INTERVIEW REPORT] Session ID:', currentSessionId);
+    console.log('[INTERVIEW REPORT] Transcript characters:', totalChars);
+    console.log('[INTERVIEW REPORT] Interview ID:', currentSessionId || `SESSION_${Date.now()}`);
 
     if (transcript.length === 0) {
       console.warn('[INTERVIEW REPORT] Transcript is EMPTY — the interview may have ended before any Vapi transcript was captured.');
@@ -217,8 +217,10 @@ export default function MockInterviewPage({ currentUser, onNavigate, onInterview
 
     // Try fetching Report from backend
     try {
+      const activeId = currentSessionId || `SESSION_${Date.now()}`;
       const payload = {
-        sessionId: currentSessionId || `SESSION_${Date.now()}`,
+        sessionId: activeId,
+        interviewId: activeId,
         answersHistory: transcript,
         interviewConfig: {
           type: interviewConfig?.type,
@@ -298,6 +300,14 @@ export default function MockInterviewPage({ currentUser, onNavigate, onInterview
       }
     }
 
+    if (finalReport) {
+      try {
+        sessionStorage.setItem('interactai_active_report', JSON.stringify(finalReport));
+        if (currentSessionId) {
+          sessionStorage.setItem('interactai_active_session_id', currentSessionId);
+        }
+      } catch (err) {}
+    }
     setReportData(finalReport);
     
     // Trigger notification
