@@ -308,13 +308,18 @@ Return JSON format strictly:
     console.log('[REPORT AI] Interview type:', interviewDomain || roundType || 'Technical');
 
     let codingContextBlock = '';
-    if (hasCodingMetrics) {
+    if (hasCodingMetrics || (codingMetrics && codingMetrics.executionStatus)) {
+      const isExecuted = codingMetrics.executionStatus === 'completed' && typeof codingMetrics.testsPassed === 'number';
+      const execStatusText = isExecuted
+        ? `Deterministic Test Results: ${codingMetrics.testsPassed} Passed, ${codingMetrics.testsFailed} Failed out of ${codingMetrics.totalTests} Total Tests.`
+        : `Execution Status: UNAVAILABLE (${codingMetrics.language || 'language'} execution sandbox not enabled; evaluate candidate code syntax, structure, algorithmic approach, and verbal discussion without claiming tests passed).`;
+
       codingContextBlock = `
 Coding Problem Evaluation Context:
 - Problem: ${codingMetrics.problemTitle || 'Coding Problem'} (${codingMetrics.difficulty || 'Medium'})
 - Programming Language: ${codingMetrics.language || 'javascript'}
-- Deterministic Test Results: ${codingMetrics.testsPassed} Passed, ${codingMetrics.testsFailed} Failed out of ${codingMetrics.totalTests} Total Tests.
-- Total Run Count: ${codingMetrics.runCount || 1}
+- ${execStatusText}
+- Total Run Count: ${codingMetrics.runCount || 0}
 - Submitted Candidate Solution Code:
 \`\`\`${codingMetrics.language || 'javascript'}
 ${codingMetrics.codeContent || '// No code submitted'}

@@ -5,9 +5,10 @@ import {
   Clock, ArrowRight, MessageSquare, AlertCircle, StopCircle, Maximize2, 
   Settings, ChevronRight, ShieldCheck, Lightbulb, PhoneOff, Terminal, 
   Sparkles, GripVertical, Send, RefreshCw, AlertTriangle, Code2, Network, Brain, Database,
-  Save, CheckCircle2, Volume2, VolumeX, ShieldAlert
+  Save, CheckCircle2, Volume2, VolumeX, ShieldAlert, Lock
 } from 'lucide-react';
 import API_BASE_URL from '../config/api';
+import { auth } from '../services/firebase';
 import './LiveInterviewStudio.css';
 
 import { selectCodingProblem, CODING_PROBLEMS } from '../data/codingProblems';
@@ -19,9 +20,11 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
   // Session ID determination for backend persistence & recovery
   const sessionId = interviewConfig?.sessionId || interviewConfig?.id || `SESSION_${currentUser?.id || 'ANON'}_${interviewConfig?.roundType || 'CODING'}`;
 
+  // Version counter for monotonic autosave sequence (Phase 4)
+  const versionRef = useRef(1);
+
   // 1. Retrieve or restore active problem
   const [activeProblem, setActiveProblem] = useState(() => {
-    // Try recovering saved problem from localStorage first
     try {
       const savedRaw = localStorage.getItem(`interactai_coding_${sessionId}`);
       if (savedRaw) {
@@ -74,14 +77,19 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
     return 'INTRO';
   });
 
-  // 3. Timing & State
+  // 3. Timing & Timestamp-based Deadline (Phase 7)
   const durationMins = parseInt(interviewConfig?.duration || '30', 10);
   const totalSeconds = durationMins * 60;
+  
   const [remainingSeconds, setRemainingSeconds] = useState(() => {
     try {
       const savedRaw = localStorage.getItem(`interactai_coding_${sessionId}`);
       if (savedRaw) {
         const savedData = JSON.parse(savedRaw);
+        if (savedData?.codingDeadline) {
+          const diff = Math.max(0, Math.floor((savedData.codingDeadline - Date.now()) / 1000));
+          return diff;
+        }
         if (typeof savedData?.remainingSeconds === 'number' && savedData.remainingSeconds > 0) {
           return savedData.remainingSeconds;
         }
@@ -89,6 +97,8 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
     } catch (e) {}
     return totalSeconds;
   });
+
+  const codingDeadlineRef = useRef(Date.now() + remainingSeconds * 1000);
 
   const getInitialQuestionText = () => {
     if (interviewConfig?.initialQuestion) {
@@ -189,6 +199,13 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
     return activeProblem.testCases || [];
   });
 
+  const [executionMetrics, setExecutionMetrics] = useState(() => ({
+    executionStatus: codeLanguage === 'javascript' ? 'pending' : 'unavailable',
+    testsPassed: null,
+    testsFailed: null,
+    totalTests: testCases.length
+  }));
+
   const [customInput, setCustomInput] = useState('');
   const [customExpected, setCustomExpected] = useState('');
   const [showAddTest, setShowAddTest] = useState(false);
@@ -201,9 +218,7 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
     firstRunAt: null,
     lastRunAt: null,
     runCount: 0,
-    languageChanges: 0,
-    passedTests: 0,
-    totalTests: testCases.length
+    languageChanges: 0
   });
 
   const videoRef = useRef(null);
@@ -221,6 +236,17 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
     transcriptRef.current = transcript;
   }, [transcript]);
 
+  // Auth Bearer Token Fetch Helper
+  const getAuthToken = async () => {
+    try {
+      const firebaseUser = auth.currentUser;
+      if (firebaseUser) {
+        return await firebaseUser.getIdToken();
+      }
+    } catch (e) {}
+    return null;
+  };
+
   // 4. Recovery On Mount: Restore active session state from backend
   useEffect(() => {
     if (!isCodingRound || !sessionId) return;
@@ -228,7 +254,11 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
     let isCancelled = false;
     const fetchBackendSession = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/interview/session/${sessionId}`);
+        const token = await getAuthToken();
+        const headers = {};
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        const res = await fetch(`${API_BASE_URL}/api/interview/session/${sessionId}`, { headers });
         if (res.ok) {
           const data = await res.json();
           if (!isCancelled && data?.success && data?.state) {
@@ -240,12 +270,19 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
             }
             if (st.codeContent) setCodeContent(st.codeContent);
             if (st.codeLanguage) setCodeLanguage(st.codeLanguage);
-            if (typeof st.remainingSeconds === 'number') setRemainingSeconds(st.remainingSeconds);
+            if (st.codingDeadline) {
+              codingDeadlineRef.current = st.codingDeadline;
+              const diff = Math.max(0, Math.floor((st.codingDeadline - Date.now()) / 1000));
+              setRemainingSeconds(diff);
+            } else if (typeof st.remainingSeconds === 'number') {
+              setRemainingSeconds(st.remainingSeconds);
+            }
             if (st.codingPhase && ['INTRO', 'CODING', 'DISCUSSION'].includes(st.codingPhase)) {
               setCodingPhase(st.codingPhase);
             }
             if (st.testCases) setTestCases(st.testCases);
             if (typeof st.runCount === 'number') setRunCount(st.runCount);
+            if (typeof st.version === 'number') versionRef.current = Math.max(versionRef.current, st.version);
           }
         }
       } catch (err) {
@@ -257,20 +294,24 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
     return () => { isCancelled = true; };
   }, [sessionId, isCodingRound]);
 
-  // 5. Debounced Autosave Function
+  // 5. Monotonic Autosave Function with Versioning & Bearer Token (Phase 1, 3 & 4)
   const saveCodingSession = useCallback(async (overrides = {}) => {
     if (!isCodingRound) return;
 
     setAutosaveStatus('saving');
+    const currentVersion = versionRef.current++;
+
     const stateToSave = {
       sessionId,
       problemId: activeProblem.id,
       codeContent: overrides.codeContent !== undefined ? overrides.codeContent : codeContent,
       codeLanguage: overrides.codeLanguage !== undefined ? overrides.codeLanguage : codeLanguage,
       remainingSeconds: remainingRef.current,
+      codingDeadline: codingDeadlineRef.current,
       codingPhase: overrides.codingPhase !== undefined ? overrides.codingPhase : codingPhase,
       testCases: overrides.testCases !== undefined ? overrides.testCases : testCases,
       runCount: overrides.runCount !== undefined ? overrides.runCount : runCount,
+      version: currentVersion,
       savedAt: new Date().toISOString()
     };
 
@@ -279,11 +320,15 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
       localStorage.setItem(`interactai_coding_${sessionId}`, JSON.stringify(stateToSave));
     } catch (e) {}
 
-    // Save to backend
+    // Save to backend with auth token
     try {
+      const token = await getAuthToken();
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       const res = await fetch(`${API_BASE_URL}/api/interview/session/autosave`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           sessionId,
           codingState: stateToSave
@@ -302,7 +347,18 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
     }
   }, [isCodingRound, sessionId, activeProblem.id, codeContent, codeLanguage, codingPhase, testCases, runCount]);
 
-  // Periodic autosave every 8 seconds during active coding phase
+  // Debounced Autosave Effect: 1000ms delay after candidate stops typing (Phase 3)
+  useEffect(() => {
+    if (!isCodingRound || codingPhase !== 'CODING') return;
+
+    const timer = setTimeout(() => {
+      saveCodingSession();
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [codeContent, isCodingRound, codingPhase, saveCodingSession]);
+
+  // Periodic safety autosave every 8 seconds during active coding phase
   useEffect(() => {
     if (!isCodingRound || codingPhase !== 'CODING') return;
 
@@ -507,7 +563,6 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
       }
     });
 
-    // Dynamic Candidate Startup Variables with String Sanitization
     const sanitizeVar = (str, maxLen = 600) => {
       if (!str || typeof str !== 'string') return '';
       return str
@@ -531,9 +586,9 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
       variableValues.problemTitle = sanitizeVar(activeProblem.title, 100);
       variableValues.codingPhase = phaseName;
       if (phaseName === 'DISCUSSION') {
-        const passedCount = testCases.filter(t => t.status === 'pass').length;
+        const isCompleted = executionMetrics.executionStatus === 'completed';
         variableValues.candidateCode = sanitizeVar(codeContent, 500);
-        variableValues.testResultsSummary = `${passedCount}/${testCases.length} tests passed`;
+        variableValues.testResultsSummary = isCompleted ? `${executionMetrics.testsPassed}/${executionMetrics.totalTests} tests passed` : 'Execution unavailable (Submission Mode)';
         variableValues.codeLanguage = codeLanguage;
       }
     }
@@ -551,7 +606,7 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
       setCallStatus('error');
     });
 
-  }, [currentUser, interviewConfig, isCodingRound, activeProblem, testCases, codeContent, codeLanguage, totalSeconds, remainingSeconds, isMicOn, initialStream]);
+  }, [currentUser, interviewConfig, isCodingRound, activeProblem, codeContent, codeLanguage, executionMetrics, totalSeconds, remainingSeconds, isMicOn, initialStream]);
 
   // Cleanly stop Vapi WebRTC session
   const stopVapiVoicePhase = useCallback(() => {
@@ -597,9 +652,10 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
   // Phase Transition Handlers
   const handleStartCodingPhase = () => {
     stopVapiVoicePhase();
+    codingDeadlineRef.current = Date.now() + remainingSeconds * 1000;
     setCodingPhase('CODING');
     setConsoleOutput(`[PHASE SWITCH → CODING SANDBOX]\nVapi voice disconnected (0 API cost mode).\nTimer active. You may now program your solution below.`);
-    saveCodingSession({ codingPhase: 'CODING' });
+    saveCodingSession({ codingPhase: 'CODING', codingDeadline: codingDeadlineRef.current });
   };
 
   const handleSubmitSolutionPhase = () => {
@@ -628,7 +684,6 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
     const finalTranscript = transcriptRef.current || [];
     const elapsedSeconds = totalSeconds - remainingRef.current;
 
-    const passedCount = testCases.filter(t => t.status === 'pass').length;
     const codingMetrics = {
       problemId: activeProblem.id,
       problemTitle: activeProblem.title,
@@ -636,9 +691,10 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
       language: codeLanguage,
       codeContent,
       runCount,
-      testsPassed: passedCount,
-      testsFailed: testCases.length - passedCount,
-      totalTests: testCases.length,
+      executionStatus: executionMetrics.executionStatus,
+      testsPassed: executionMetrics.testsPassed,
+      testsFailed: executionMetrics.testsFailed,
+      totalTests: executionMetrics.totalTests,
       timeSpentSeconds: elapsedSeconds,
       telemetry
     };
@@ -652,27 +708,38 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
     });
   };
 
-  // Countdown Clock Timer
+  // Timestamp-Based Clock Countdown Timer (Phase 7)
   useEffect(() => {
     const timer = setInterval(() => {
-      setRemainingSeconds(prev => {
-        if (prev <= 1) {
+      if (codingDeadlineRef.current) {
+        const diff = Math.max(0, Math.floor((codingDeadlineRef.current - Date.now()) / 1000));
+        setRemainingSeconds(diff);
+        if (diff <= 0) {
           clearInterval(timer);
-          handleEndInterview();
-          return 0;
+          if (isCodingRound && codingPhase === 'CODING') {
+            handleSubmitSolutionPhase();
+          } else {
+            handleEndInterview();
+          }
         }
-        return prev - 1;
-      });
+      }
     }, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [isCodingRound, codingPhase]);
 
   // Language Dropdown Selector Handler
   const handleLanguageChange = (newLang) => {
     setCodeLanguage(newLang);
     const codeSnippet = activeProblem?.boilerplate?.[newLang] || activeProblem?.boilerplate?.javascript || BOILERPLATE_CODE.javascript;
     setCodeContent(codeSnippet);
-    setConsoleOutput(`✓ Environment switched to ${newLang.toUpperCase()}.\nLoaded ${newLang.toUpperCase()} starter solution for ${activeProblem.title}.`);
+    
+    if (newLang === 'javascript') {
+      setConsoleOutput(`✓ Environment switched to JAVASCRIPT.\nWeb Worker Isolated Sandbox active for test execution.`);
+      setExecutionMetrics({ executionStatus: 'pending', testsPassed: null, testsFailed: null, totalTests: testCases.length });
+    } else {
+      setConsoleOutput(`⚠️ Environment switched to ${newLang.toUpperCase()}.\nNotice: Multi-language execution sandbox is disabled in this environment. Code saved for submission & AI code review.`);
+      setExecutionMetrics({ executionStatus: 'unavailable', testsPassed: null, testsFailed: null, totalTests: testCases.length });
+    }
     
     setTelemetry(prev => ({ ...prev, languageChanges: prev.languageChanges + 1 }));
     saveCodingSession({ codeLanguage: newLang, codeContent: codeSnippet });
@@ -696,12 +763,91 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
     saveCodingSession({ testCases: updated });
   };
 
-  // Run Code Test Suite Execution Handler
-  const handleRunCodeWithTests = () => {
+  // Isolated Web Worker JS Sandbox Execution Helper (Phase 6)
+  const runJsInWorker = (code, fnName, currentTestCases, timeoutMs = 2000) => {
+    return new Promise((resolve) => {
+      const workerBlob = new Blob([`
+        self.onmessage = function(e) {
+          const { code, fnName, testCases } = e.data;
+          try {
+            const userFn = new Function(code + "\\nreturn " + (fnName || "solveProblem") + ";")();
+            if (typeof userFn !== 'function') {
+              self.postMessage({ success: false, error: (fnName || "solveProblem") + " function is not defined." });
+              return;
+            }
+            let passedCount = 0;
+            const results = testCases.map(t => {
+              try {
+                const args = t.args || [];
+                const res = userFn(...args);
+                const resStr = JSON.stringify(res);
+                const isPass = resStr === t.expected || String(res) === t.expected;
+                if (isPass) passedCount++;
+                return { ...t, status: isPass ? 'pass' : 'fail', actual: resStr };
+              } catch (err) {
+                return { ...t, status: 'fail', error: err.message };
+              }
+            });
+            self.postMessage({ success: true, results, passedCount, totalCount: testCases.length });
+          } catch (err) {
+            self.postMessage({ success: false, error: err.message });
+          }
+        };
+      `], { type: 'application/javascript' });
+
+      const workerUrl = URL.createObjectURL(workerBlob);
+      const worker = new Worker(workerUrl);
+
+      let isSettled = false;
+      const timer = setTimeout(() => {
+        if (!isSettled) {
+          isSettled = true;
+          worker.terminate();
+          URL.revokeObjectURL(workerUrl);
+          resolve({ executionStatus: 'timeout', error: 'Execution Timed Out (Possible Infinite Loop exceeded 2000ms limit).' });
+        }
+      }, timeoutMs);
+
+      worker.onmessage = (e) => {
+        if (isSettled) return;
+        isSettled = true;
+        clearTimeout(timer);
+        worker.terminate();
+        URL.revokeObjectURL(workerUrl);
+
+        if (e.data.success) {
+          resolve({
+            executionStatus: 'completed',
+            results: e.data.results,
+            passedCount: e.data.passedCount,
+            totalCount: e.data.totalCount
+          });
+        } else {
+          resolve({
+            executionStatus: 'error',
+            error: e.data.error
+          });
+        }
+      };
+
+      worker.onerror = (err) => {
+        if (isSettled) return;
+        isSettled = true;
+        clearTimeout(timer);
+        worker.terminate();
+        URL.revokeObjectURL(workerUrl);
+        resolve({ executionStatus: 'error', error: err.message });
+      };
+
+      worker.postMessage({ code, fnName: activeProblem.fnName || 'solveProblem', testCases: currentTestCases });
+    });
+  };
+
+  // Run Code Test Suite Execution Handler (Phase 5 & 6)
+  const handleRunCodeWithTests = async () => {
     const newRunCount = runCount + 1;
     setRunCount(newRunCount);
     setIsAnalyzingCode(true);
-    setConsoleOutput(`Compiling code and executing test suite against ${testCases.length} test cases...`);
 
     const now = new Date().toISOString();
     setTelemetry(prev => ({
@@ -711,59 +857,68 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
       runCount: newRunCount
     }));
 
-    setTimeout(() => {
+    if (codeLanguage !== 'javascript') {
       setIsAnalyzingCode(false);
-      
-      let logs = [];
-      if (codeLanguage === 'javascript') {
-        try {
-          const originalLog = console.log;
-          console.log = (...args) => logs.push(args.join(' '));
-          
-          let passedCount = 0;
-          const updatedTests = testCases.map(t => {
-            try {
-              const argsStr = (t.args || []).map(a => JSON.stringify(a)).join(', ');
-              const userFn = new Function(codeContent + `\nreturn ${activeProblem.fnName || 'solveProblem'}(${argsStr});`);
-              const res = userFn();
-              const resStr = JSON.stringify(res);
-              const isPass = resStr === t.expected || String(res) === t.expected;
-              if (isPass) passedCount++;
-              return { ...t, status: isPass ? 'pass' : 'fail' };
-            } catch (e) {
-              return { ...t, status: 'fail' };
-            }
-          });
-          console.log = originalLog;
+      const outputText = 
+        `⚠️ Language Execution Notice (${codeLanguage.toUpperCase()}):\n` +
+        `Multi-language sandbox execution (Python, C++, Java, SQL) is currently disabled in this environment.\n` +
+        `Your code has been saved for solution discussion and qualitative AI code review.\n\n` +
+        `Status: Editor & Submission Mode Active (No automated test execution).`;
 
-          setTestCases(updatedTests);
+      setConsoleOutput(outputText);
+      setExecutionMetrics({
+        executionStatus: 'unavailable',
+        testsPassed: null,
+        testsFailed: null,
+        totalTests: testCases.length
+      });
+      saveCodingSession({ runCount: newRunCount });
+      return;
+    }
 
-          const allPassed = passedCount === updatedTests.length;
-          const outputText = 
-            `${allPassed ? '✓' : '✕'} Test Suite Results (${passedCount}/${updatedTests.length} Passed):\n` +
-            updatedTests.map(t => `  ${t.status === 'pass' ? '✓' : '✕'} ${t.name}: (${t.input}) → Expected ${t.expected} | Status: ${t.status.toUpperCase()}`).join('\n') +
-            `\n\n🤖 Deterministic Code Evaluation for ${activeProblem.title}:\n- Category: ${activeProblem.category || 'Algorithms'}\n- Passed: ${passedCount} / ${updatedTests.length}\n- Correctness: ${allPassed ? '100% Passed Test Suite' : `${passedCount}/${updatedTests.length} Passed`}`;
+    setConsoleOutput(`Compiling JavaScript code and executing test suite inside isolated Web Worker sandbox...`);
+    const evalRes = await runJsInWorker(codeContent, activeProblem.fnName, testCases);
+    setIsAnalyzingCode(false);
 
-          setConsoleOutput(outputText);
-          saveCodingSession({ testCases: updatedTests, runCount: newRunCount });
-          return;
-        } catch (err) {
-          setConsoleOutput(`❌ Execution Error:\n${err.message}\n\n🤖 Syntax Warning: Please fix syntax error before submitting.`);
-          saveCodingSession({ runCount: newRunCount });
-          return;
-        }
-      }
-
-      // Mock runner for Python/C++/Java/SQL with deterministic test status mapping
-      const updatedTests = testCases.map(t => ({ ...t, status: 'pass' }));
+    if (evalRes.executionStatus === 'completed') {
+      const updatedTests = evalRes.results;
       setTestCases(updatedTests);
-      setConsoleOutput(
-        `✓ Test Suite Execution for ${codeLanguage.toUpperCase()} (${updatedTests.length}/${updatedTests.length} Passed):\n` +
-        updatedTests.map(t => `  ✓ ${t.name}: PASSED (${t.input}) → ${t.expected}`).join('\n') +
-        `\n\n🤖 Deterministic Execution Output:\n- Problem: ${activeProblem.title}\n- Language: ${codeLanguage.toUpperCase()}\n- Result: Deterministic test suite completed successfully.`
-      );
+      const allPassed = evalRes.passedCount === evalRes.totalCount;
+
+      const outputText = 
+        `${allPassed ? '✓' : '✕'} Test Suite Results (${evalRes.passedCount}/${evalRes.totalCount} Passed):\n` +
+        updatedTests.map(t => `  ${t.status === 'pass' ? '✓' : '✕'} ${t.name}: (${t.input}) → Expected: ${t.expected} | Status: ${t.status.toUpperCase()}`).join('\n') +
+        `\n\n🤖 Web Worker Isolated Execution Output:\n- Problem: ${activeProblem.title}\n- Environment: JS Web Worker Sandbox\n- Status: ${allPassed ? '100% Passed Test Suite' : `${evalRes.passedCount}/${evalRes.totalCount} Passed`}`;
+
+      setConsoleOutput(outputText);
+      setExecutionMetrics({
+        executionStatus: 'completed',
+        testsPassed: evalRes.passedCount,
+        testsFailed: evalRes.totalCount - evalRes.passedCount,
+        totalTests: evalRes.totalCount
+      });
       saveCodingSession({ testCases: updatedTests, runCount: newRunCount });
-    }, 800);
+    } else if (evalRes.executionStatus === 'timeout') {
+      setConsoleOutput(`❌ Execution Timeout (2000ms Limit Exceeded):\n${evalRes.error}\n\n🤖 Sandbox Safeguard: Worker process terminated to prevent infinite loop.`);
+      setExecutionMetrics({
+        executionStatus: 'timeout',
+        error: evalRes.error,
+        testsPassed: null,
+        testsFailed: null,
+        totalTests: testCases.length
+      });
+      saveCodingSession({ runCount: newRunCount });
+    } else {
+      setConsoleOutput(`❌ Execution Error:\n${evalRes.error}\n\n🤖 Syntax Warning: Please fix execution error before submitting.`);
+      setExecutionMetrics({
+        executionStatus: 'error',
+        error: evalRes.error,
+        testsPassed: null,
+        testsFailed: null,
+        totalTests: testCases.length
+      });
+      saveCodingSession({ runCount: newRunCount });
+    }
   };
 
   return (
@@ -1054,11 +1209,11 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
               
               {/* Dynamic Language Selector Dropdown */}
               <select className="lang-select" value={codeLanguage} onChange={(e) => handleLanguageChange(e.target.value)}>
-                <option value="javascript">JavaScript</option>
-                <option value="python">Python 3</option>
-                <option value="cpp">C++ 17</option>
-                <option value="java">Java 17</option>
-                <option value="sql">SQL Query</option>
+                <option value="javascript">JavaScript (Worker Sandbox)</option>
+                <option value="python">Python 3 (Editor Mode)</option>
+                <option value="cpp">C++ 17 (Editor Mode)</option>
+                <option value="java">Java 17 (Editor Mode)</option>
+                <option value="sql">SQL Query (Editor Mode)</option>
               </select>
 
               {/* Phase Control Action Buttons */}
@@ -1095,7 +1250,7 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
                 <button type="button" className={`tab-btn ${activeProblemTab === 'description' ? 'active' : ''}`} onClick={() => setActiveProblemTab('description')}>Description</button>
                 <button type="button" className={`tab-btn ${activeProblemTab === 'examples' ? 'active' : ''}`} onClick={() => setActiveProblemTab('examples')}>Examples</button>
                 <button type="button" className={`tab-btn ${activeProblemTab === 'constraints' ? 'active' : ''}`} onClick={() => setActiveProblemTab('constraints')}>Constraints</button>
-                <button type="button" className={`tab-btn ${activeProblemTab === 'testcases' ? 'active' : ''}`} onClick={() => setActiveProblemTab('testcases')}>Test Cases ({testCases.length})</button>
+                <button type="button" className={`tab-btn ${activeProblemTab === 'testcases' ? 'active' : ''}`} onClick={() => setActiveProblemTab('testcases')}>Test Suite ({testCases.length})</button>
               </div>
 
               <div className="problem-pane-content">
@@ -1213,17 +1368,14 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
                 <textarea 
                   className="code-textarea"
                   value={codeContent}
-                  onChange={(e) => {
-                    setCodeContent(e.target.value);
-                    saveCodingSession({ codeContent: e.target.value });
-                  }}
+                  onChange={(e) => setCodeContent(e.target.value)}
                   spellCheck="false"
                 />
               </div>
 
               {/* Bottom Console Runner */}
               <div className="console-runner-box">
-                <div className="console-title"><Terminal size={14} /> Deterministic Execution Engine & Console Logs</div>
+                <div className="console-title"><Terminal size={14} /> Isolated Execution Console ({codeLanguage === 'javascript' ? 'Web Worker Sandbox' : 'Editor & Submission Mode'})</div>
                 <pre className="console-output">{consoleOutput}</pre>
               </div>
             </div>

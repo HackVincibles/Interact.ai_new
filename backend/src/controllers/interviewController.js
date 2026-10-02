@@ -126,10 +126,14 @@ export const getHistory = async (req, res, next) => {
 export const autosaveCodingSession = async (req, res, next) => {
   try {
     const { sessionId, codingState } = req.body;
+    const userId = req.user?.id;
     if (!sessionId) {
       return res.status(400).json({ success: false, message: 'Session ID is required' });
     }
-    const saved = await InterviewModel.saveCodingSessionState(sessionId, codingState);
+    const saved = await InterviewModel.saveCodingSessionState(sessionId, codingState, userId);
+    if (!saved) {
+      return res.status(404).json({ success: false, message: 'Session state not found' });
+    }
     res.json({
       success: true,
       sessionId,
@@ -144,7 +148,8 @@ export const autosaveCodingSession = async (req, res, next) => {
 export const restoreCodingSession = async (req, res, next) => {
   try {
     const { sessionId } = req.params;
-    const state = await InterviewModel.getCodingSessionState(sessionId);
+    const userId = req.user?.id;
+    const state = await InterviewModel.getCodingSessionState(sessionId, userId);
     if (!state) {
       return res.status(404).json({ success: false, message: 'Session state not found' });
     }

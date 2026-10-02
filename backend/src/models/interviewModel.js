@@ -21,35 +21,82 @@ export class InterviewModel {
   // Memory cache for fast session recovery across restarts/refreshes
   static codingSessionCache = new Map();
 
-  static async saveCodingSessionState(sessionId, codingState) {
+  static async saveCodingSessionState(sessionId, codingState, userId = null) {
+    const key = String(sessionId);
+    const existing = this.codingSessionCache.get(key);
+
+    // Ownership check on cached record
+    if (existing && existing.userId && userId && Number(existing.userId) !== Number(userId)) {
+      console.warn(`[AUTH IDOR BLOCKED] saveCodingSessionState user mismatch: requester=${userId}, owner=${existing.userId}`);
+      return null;
+    }
+
+    // Version Ordering Protection (Phase 4): Ignore stale out-of-order updates
+    const incomingVersion = Number(codingState?.version || 0);
+    const existingVersion = Number(existing?.version || 0);
+    if (existing && incomingVersion > 0 && incomingVersion < existingVersion) {
+      console.log(`[AUTOSAVE STALE IGNORED] key=${key} incomingVersion=${incomingVersion} < existingVersion=${existingVersion}`);
+      return existing;
+    }
+
     const sessionData = {
       ...codingState,
+      userId: userId || existing?.userId || null,
+      version: Math.max(incomingVersion, existingVersion),
       updatedAt: new Date().toISOString()
     };
-    this.codingSessionCache.set(String(sessionId), sessionData);
+
+    this.codingSessionCache.set(key, sessionData);
 
     try {
-      // Store in DB feedback / session column if postgres is active
-      const res = await dbPool.query(
-        'UPDATE interviews SET questions = $1 WHERE id = $2 RETURNING *',
-        [JSON.stringify(sessionData), sessionId]
-      );
-      return res.rows[0] || sessionData;
+      if (!isNaN(Number(sessionId))) {
+        const checkRes = await dbPool.query('SELECT user_id FROM interviews WHERE id = $1', [sessionId]);
+        if (checkRes.rows.length > 0) {
+          const rowUserId = checkRes.rows[0].user_id;
+          if (rowUserId && userId && Number(rowUserId) !== Number(userId)) {
+            console.warn(`[AUTH IDOR BLOCKED] Postgres save user mismatch: requester=${userId}, owner=${rowUserId}`);
+            return null;
+          }
+          const res = await dbPool.query(
+            'UPDATE interviews SET questions = $1 WHERE id = $2 RETURNING *',
+            [JSON.stringify(sessionData), sessionId]
+          );
+          return res.rows[0] ? sessionData : null;
+        }
+      }
+      return sessionData;
     } catch (err) {
       console.warn('Postgres query fallback (saveCodingSessionState):', err.message);
       return sessionData;
     }
   }
 
-  static async getCodingSessionState(sessionId) {
-    const cached = this.codingSessionCache.get(String(sessionId));
-    if (cached) return cached;
+  static async getCodingSessionState(sessionId, userId = null) {
+    const key = String(sessionId);
+    const cached = this.codingSessionCache.get(key);
+    if (cached) {
+      if (cached.userId && userId && Number(cached.userId) !== Number(userId)) {
+        console.warn(`[AUTH IDOR BLOCKED] getCodingSessionState cached mismatch: requester=${userId}, owner=${cached.userId}`);
+        return null;
+      }
+      return cached;
+    }
 
     try {
-      const res = await dbPool.query('SELECT questions FROM interviews WHERE id = $1', [sessionId]);
-      if (res.rows[0]?.questions) {
-        const parsed = typeof res.rows[0].questions === 'string' ? JSON.parse(res.rows[0].questions) : res.rows[0].questions;
-        return parsed;
+      if (!isNaN(Number(sessionId))) {
+        const res = await dbPool.query('SELECT user_id, questions FROM interviews WHERE id = $1', [sessionId]);
+        if (res.rows[0]) {
+          const rowUserId = res.rows[0].user_id;
+          if (rowUserId && userId && Number(rowUserId) !== Number(userId)) {
+            console.warn(`[AUTH IDOR BLOCKED] Postgres restore user mismatch: requester=${userId}, owner=${rowUserId}`);
+            return null;
+          }
+          if (res.rows[0].questions) {
+            const parsed = typeof res.rows[0].questions === 'string' ? JSON.parse(res.rows[0].questions) : res.rows[0].questions;
+            this.codingSessionCache.set(key, parsed);
+            return parsed;
+          }
+        }
       }
     } catch (err) {
       console.warn('Postgres query fallback (getCodingSessionState):', err.message);
