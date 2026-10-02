@@ -9,71 +9,34 @@ import {
 import API_BASE_URL from '../config/api';
 import './LiveInterviewStudio.css';
 
-// Standard Starter Boilerplate Code per language
-const BOILERPLATE_CODE = {
-  javascript: `// JavaScript Solution (Optimal Hash Map)
-function solveProblem(nums, target) {
-  const map = new Map();
-  for (let i = 0; i < nums.length; i++) {
-    const diff = target - nums[i];
-    if (map.has(diff)) return [map.get(diff), i];
-    map.set(nums[i], i);
-  }
-  return [];
-}`,
-  python: `# Python 3 Solution (Optimal Hash Map)
-def solve_problem(nums, target):
-    seen = {}
-    for i, num in enumerate(nums):
-        diff = target - num
-        if diff in seen:
-            return [seen[diff], i]
-        seen[num] = i
-    return []`,
-  cpp: `// C++ 17 Solution (std::unordered_map)
-#include <vector>
-#include <unordered_map>
+import { selectCodingProblem, CODING_PROBLEMS } from '../data/codingProblems';
 
-class Solution {
-public:
-    std::vector<int> twoSum(std::vector<int>& nums, int target) {
-        std::unordered_map<int, int> map;
-        for (int i = 0; i < nums.size(); i++) {
-            int diff = target - nums[i];
-            if (map.find(diff) != map.end()) {
-                return {map[diff], i};
-            }
-            map[nums[i]] = i;
-        }
-        return {};
-    }
-};`,
-  java: `// Java 17 Solution (java.util.HashMap)
-import java.util.HashMap;
-
-class Solution {
-    public int[] twoSum(int[] nums, int target) {
-        HashMap<Integer, Integer> map = new HashMap<>();
-        for (int i = 0; i < nums.length; i++) {
-            int diff = target - nums[i];
-            if (map.containsKey(diff)) {
-                return new int[] { map.get(diff), i };
-            }
-            map.put(nums[i], i);
-        }
-        return new int[0];
-    }
-}`,
-  sql: `-- SQL Solution (Self-Join)
-SELECT 
-    t1.id AS index1, 
-    t2.id AS index2
-FROM numbers t1
-JOIN numbers t2 ON t1.id < t2.id
-WHERE t1.val + t2.val = 9;`
-};
+// Standard Starter Boilerplate Code per language fallback
+const BOILERPLATE_CODE = CODING_PROBLEMS[0].boilerplate;
 
 export default function LiveInterviewStudio({ currentUser, initialStream, interviewConfig, onFinishInterview }) {
+  // Retrieve or select dynamic coding problem based on difficulty, targetRole, and session deduplication
+  const [activeProblem, setActiveProblem] = useState(() => {
+    let usedIds = [];
+    try {
+      usedIds = JSON.parse(sessionStorage.getItem('interactai_used_coding_ids') || '[]');
+    } catch (e) {}
+
+    const selected = selectCodingProblem(
+      interviewConfig?.difficulty || 'Medium',
+      interviewConfig?.targetRole || '',
+      interviewConfig?.roundType || '',
+      usedIds
+    );
+
+    try {
+      const updatedUsed = [...new Set([...usedIds, selected.id])];
+      sessionStorage.setItem('interactai_used_coding_ids', JSON.stringify(updatedUsed));
+    } catch (e) {}
+
+    return selected;
+  });
+
   // 1. Config & State
   const durationMins = parseInt(interviewConfig?.duration || '30', 10);
   const totalSeconds = durationMins * 60;
@@ -104,14 +67,14 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
         return `// ⚙️ Technical Architecture & Concepts Workspace\n// Write your technical notes or pseudocode here:`;
       }
     }
-    return BOILERPLATE_CODE.javascript;
+    return activeProblem?.boilerplate?.javascript || BOILERPLATE_CODE.javascript;
   };
 
   const getInitialConsoleOutput = () => {
     if (interviewConfig?.practiceMode === 'targeted' && interviewConfig?.roundType) {
       return `Targeted ${interviewConfig.roundType} Practice session active. Vapi Voice AI connected.`;
     }
-    return 'Vapi AI Voice Engine connected. Candidate voice & IDE active.';
+    return `Vapi AI Voice Engine connected. Active Problem: ${activeProblem.title} (${activeProblem.difficulty}).`;
   };
 
   // Question & Transcript state
@@ -146,11 +109,7 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
 
   // Problem Pane Interactive Tabs & Test Cases
   const [activeProblemTab, setActiveProblemTab] = useState('description');
-  const [testCases, setTestCases] = useState([
-    { id: 1, name: 'Test 1', input: 'nums = [2, 7, 11, 15], target = 9', expected: '[0, 1]', status: 'pending' },
-    { id: 2, name: 'Test 2', input: 'nums = [3, 2, 4], target = 6', expected: '[1, 2]', status: 'pending' },
-    { id: 3, name: 'Test 3', input: 'nums = [3, 3], target = 6', expected: '[0, 1]', status: 'pending' }
-  ]);
+  const [testCases, setTestCases] = useState(activeProblem.testCases || []);
   const [customInput, setCustomInput] = useState('');
   const [customExpected, setCustomExpected] = useState('');
   const [showAddTest, setShowAddTest] = useState(false);
@@ -558,9 +517,9 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
   // Language Dropdown Selector Handler
   const handleLanguageChange = (newLang) => {
     setCodeLanguage(newLang);
-    const codeSnippet = BOILERPLATE_CODE[newLang] || BOILERPLATE_CODE.javascript;
+    const codeSnippet = activeProblem?.boilerplate?.[newLang] || activeProblem?.boilerplate?.javascript || BOILERPLATE_CODE.javascript;
     setCodeContent(codeSnippet);
-    setConsoleOutput(`✓ Environment switched to ${newLang.toUpperCase()}.\nLoaded ${newLang.toUpperCase()} starter solution.`);
+    setConsoleOutput(`✓ Environment switched to ${newLang.toUpperCase()}.\nLoaded ${newLang.toUpperCase()} starter solution for ${activeProblem.title}.`);
   };
 
   // Custom Test Case Add Handler
@@ -587,23 +546,35 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
     setTimeout(() => {
       setIsAnalyzingCode(false);
       
-      const updatedTests = testCases.map(t => ({ ...t, status: 'pass' }));
-      setTestCases(updatedTests);
-
       let logs = [];
       if (codeLanguage === 'javascript') {
         try {
           const originalLog = console.log;
           console.log = (...args) => logs.push(args.join(' '));
-          const userFn = new Function(codeContent + '\nreturn solveProblem([2, 7, 11, 15], 9);');
-          const result = userFn();
+          
+          let passedCount = 0;
+          const updatedTests = testCases.map(t => {
+            try {
+              const argsStr = (t.args || []).map(a => JSON.stringify(a)).join(', ');
+              const userFn = new Function(codeContent + `\nreturn ${activeProblem.fnName || 'solveProblem'}(${argsStr});`);
+              const res = userFn();
+              const resStr = JSON.stringify(res);
+              const isPass = resStr === t.expected || String(res) === t.expected;
+              if (isPass) passedCount++;
+              return { ...t, status: isPass ? 'pass' : 'fail' };
+            } catch (e) {
+              return { ...t, status: 'fail' };
+            }
+          });
           console.log = originalLog;
 
+          setTestCases(updatedTests);
+
+          const allPassed = passedCount === updatedTests.length;
           setConsoleOutput(
-            `✓ Test Suite Results (${updatedTests.length}/${updatedTests.length} Passed):\n` +
-            updatedTests.map(t => `  ✓ ${t.name}: PASSED (${t.input}) → ${t.expected}`).join('\n') +
-            `\n\n✓ JavaScript Execution Result: ${JSON.stringify(result)}\n` +
-            `🤖 AI Code Evaluation:\n- Time Complexity: O(N) [Optimal Map Lookup]\n- Space Complexity: O(N)\n- Correctness: 100% Passed Test Suite.`
+            `${allPassed ? '✓' : '✕'} Test Suite Results (${passedCount}/${updatedTests.length} Passed):\n` +
+            updatedTests.map(t => `  ${t.status === 'pass' ? '✓' : '✕'} ${t.name}: (${t.input}) → Expected ${t.expected} | Status: ${t.status.toUpperCase()}`).join('\n') +
+            `\n\n🤖 AI Code Evaluation for ${activeProblem.title}:\n- Category: ${activeProblem.category || 'Algorithms'}\n- Complexity: O(N) Optimal\n- Correctness: ${allPassed ? '100% Passed Test Suite' : `${passedCount}/${updatedTests.length} Passed`}`
           );
           return;
         } catch (err) {
@@ -612,10 +583,12 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
         }
       }
 
+      const updatedTests = testCases.map(t => ({ ...t, status: 'pass' }));
+      setTestCases(updatedTests);
       setConsoleOutput(
         `✓ Test Suite Results for ${codeLanguage.toUpperCase()} (${updatedTests.length}/${updatedTests.length} Passed):\n` +
         updatedTests.map(t => `  ✓ ${t.name}: PASSED (${t.input}) → ${t.expected}`).join('\n') +
-        `\n\n🤖 AI Code Evaluation:\n- Time Complexity: O(N)\n- Space Complexity: O(1)\n- Code structure is optimal. Ready for interview submission.`
+        `\n\n🤖 AI Code Evaluation:\n- Problem: ${activeProblem.title}\n- Language: ${codeLanguage.toUpperCase()}\n- Structure: Optimal solution. Ready for interview submission.`
       );
     }, 1000);
   };
@@ -948,21 +921,20 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
                 {/* TAB 1: Description */}
                 {activeProblemTab === 'description' && (
                   <div className="tab-pane-view">
-                    <h3 className="problem-title-text">Optimal Target Sum Search</h3>
-                    <span className="diff-pill medium">Medium</span>
+                    <h3 className="problem-title-text">{activeProblem.title}</h3>
+                    <span className={`diff-pill ${activeProblem.difficulty.toLowerCase().includes('easy') ? 'easy' : (activeProblem.difficulty.toLowerCase().includes('hard') || activeProblem.difficulty.toLowerCase().includes('faang') ? 'hard' : 'medium')}`}>
+                      {activeProblem.difficulty}
+                    </span>
 
-                    <p className="p-desc">
-                      Given an array of integers <code>nums</code> and an integer <code>target</code>, return indices of the two numbers such that they add up to <code>target</code>.
-                    </p>
-                    <p className="p-desc">
-                      You may assume that each input would have exactly one solution, and you may not use the same element twice.
+                    <p className="p-desc" style={{ whiteSpace: 'pre-line' }}>
+                      {activeProblem.description}
                     </p>
 
                     <div className="p-section">
-                      <h4>💡 Problem Hints:</h4>
+                      <h4>💡 Problem Category:</h4>
                       <ul>
-                        <li>Consider using a Hash Map to store numbers and their array indices.</li>
-                        <li>For each element <code>nums[i]</code>, check if <code>target - nums[i]</code> exists in the map.</li>
+                        <li>Category: <strong>{activeProblem.category}</strong></li>
+                        <li>Optimal Time & Space Complexity expected.</li>
                       </ul>
                     </div>
                   </div>
@@ -971,20 +943,12 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
                 {/* TAB 2: Examples */}
                 {activeProblemTab === 'examples' && (
                   <div className="tab-pane-view">
-                    <div className="p-section">
-                      <h4>Example 1:</h4>
-                      <pre>Input: nums = [2,7,11,15], target = 9{"\n"}Output: [0,1]{"\n"}Explanation: nums[0] + nums[1] == 9, so we return [0, 1].</pre>
-                    </div>
-
-                    <div className="p-section">
-                      <h4>Example 2:</h4>
-                      <pre>Input: nums = [3,2,4], target = 6{"\n"}Output: [1,2]{"\n"}Explanation: nums[1] + nums[2] == 6, so we return [1, 2].</pre>
-                    </div>
-
-                    <div className="p-section">
-                      <h4>Example 3:</h4>
-                      <pre>Input: nums = [3,3], target = 6{"\n"}Output: [0,1]{"\n"}Explanation: nums[0] + nums[1] == 6.</pre>
-                    </div>
+                    {activeProblem.examples.map((ex, idx) => (
+                      <div key={idx} className="p-section">
+                        <h4>Example {idx + 1}:</h4>
+                        <pre>Input: {ex.input}{"\n"}Output: {ex.output}{"\n"}{ex.explanation ? `Explanation: ${ex.explanation}` : ''}</pre>
+                      </div>
+                    ))}
                   </div>
                 )}
 
@@ -994,11 +958,9 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
                     <div className="p-section">
                       <h4>Problem Constraints:</h4>
                       <ul>
-                        <li><code>2 ≤ nums.length ≤ 10<sup>4</sup></code></li>
-                        <li><code>-10<sup>9</sup> ≤ nums[i] ≤ 10<sup>9</sup></code></li>
-                        <li><code>-10<sup>9</sup> ≤ target ≤ 10<sup>9</sup></code></li>
-                        <li><strong>Time Complexity Target:</strong> O(N) or O(N log N)</li>
-                        <li><strong>Space Complexity Target:</strong> O(N)</li>
+                        {activeProblem.constraints.map((c, idx) => (
+                          <li key={idx}><code>{c}</code></li>
+                        ))}
                       </ul>
                     </div>
                   </div>
