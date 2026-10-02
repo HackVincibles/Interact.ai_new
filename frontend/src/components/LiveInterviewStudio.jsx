@@ -241,22 +241,33 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
 
   // Vapi AI Voice Engine Initialization & Event Handling
   const isStartedRef = useRef(false);
+  const lifecycleIdRef = useRef(0);
 
   useEffect(() => {
-    if (isStartedRef.current) return;
+    const lifecycleId = ++lifecycleIdRef.current;
+    const instanceId = Math.random().toString(36).substring(2, 9);
+
+    console.log(`[VAPI TRACE 01] LiveInterviewStudio mounted | lifecycleId: ${lifecycleId} | instance: ${instanceId}`);
+    console.log('[VAPI TRACE] isMicOn:', isMicOn);
+
+    if (isStartedRef.current && vapiRef.current) {
+      console.log(`[VAPI TRACE] active instance already running: ${instanceId}`);
+      return;
+    }
     isStartedRef.current = true;
 
     const publicKey = import.meta.env.VITE_VAPI_PUBLIC_KEY;
     const assistantId = import.meta.env.VITE_VAPI_ASSISTANT_ID;
 
-    console.log('[VAPI DEBUG] initializing');
-    console.log('[VAPI DEBUG] assistantId:', assistantId);
-    console.log('[VAPI DEBUG] public key present:', !!publicKey);
+    console.log(`[VAPI TRACE 02] Creating Vapi instance | instanceId: ${instanceId}`);
+    console.log('[VAPI TRACE 03] Assistant ID:', assistantId);
+    console.log('[VAPI TRACE] public key present:', !!publicKey);
 
     if (!publicKey || !assistantId || publicKey.includes('your-vapi') || assistantId.includes('your-assistant')) {
-      console.warn('[VAPI DEBUG] environment variables missing or unconfigured.');
+      console.warn('[VAPI TRACE ERROR] environment variables missing or unconfigured.');
       setVapiError('Vapi AI Voice configuration is missing or invalid. Please check frontend environment variables.');
       setCallStatus('error');
+      isStartedRef.current = false;
       return;
     }
 
@@ -266,55 +277,80 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
       vapi = new VapiClass(publicKey);
       vapiRef.current = vapi;
     } catch (err) {
-      console.warn('[VAPI DEBUG] SDK initialization error:', err);
-      setVapiError('Failed to initialize Vapi voice client: ' + (err.message || 'Unknown error'));
+      console.warn('[VAPI TRACE ERROR] SDK initialization error:', err);
+      setVapiError('Failed to initialize Vapi voice client: ' + (err?.message || String(err)));
       setCallStatus('error');
+      isStartedRef.current = false;
       return;
     }
 
     // Register Supported Vapi Listeners
     vapi.on('call-start', () => {
-      console.log('[VAPI DEBUG] call-start');
+      if (lifecycleId !== lifecycleIdRef.current) return;
+      console.log(`[VAPI TRACE 06] call-start | instance: ${instanceId} | lifecycle: ${lifecycleId}`);
       setCallStatus('active');
       setVapiError(null);
+      if (initialStream) {
+        initialStream.getAudioTracks().forEach(t => t.enabled = isMicOn);
+      }
       if (vapiRef.current) {
         try { vapiRef.current.setMuted(!isMicOn); } catch (e) {}
       }
     });
 
     vapi.on('call-end', () => {
-      console.log('[VAPI DEBUG] call-end');
+      if (lifecycleId !== lifecycleIdRef.current) return;
+      console.log(`[VAPI TRACE] call-end | instance: ${instanceId} | lifecycle: ${lifecycleId}`);
       setCallStatus('ended');
       setIsAiSpeaking(false);
       setIsListeningUser(false);
     });
 
     vapi.on('speech-start', () => {
-      console.log('[VAPI DEBUG] speech-start (AI speaking)');
+      if (lifecycleId !== lifecycleIdRef.current) return;
+      console.log('[VAPI TRACE 08] speech-start (AI speaking)');
       setIsAiSpeaking(true);
       setIsListeningUser(false);
     });
 
     vapi.on('speech-end', () => {
-      console.log('[VAPI DEBUG] speech-end (AI stopped speaking)');
+      if (lifecycleId !== lifecycleIdRef.current) return;
+      console.log('[VAPI TRACE] speech-end (AI stopped speaking)');
       setIsAiSpeaking(false);
       setIsListeningUser(true);
     });
 
     vapi.on('message', (message) => {
-      console.log('[VAPI DEBUG] message:', message?.type, message?.role, message?.transcriptType || '');
-      if (message.type === 'transcript') {
-        const text = message.transcript || '';
-        const role = message.role;
-        const isFinal = message.transcriptType === 'final';
+      if (lifecycleId !== lifecycleIdRef.current) return;
+      const msgType = message?.type;
+      const role = message?.role;
+      const transcriptType = message?.transcriptType;
+
+      console.log('[VAPI TRACE 07] message received:', msgType, role || '', transcriptType || '');
+
+      if (msgType === 'assistant-started' || msgType === 'call-start-progress') {
+        console.log('[VAPI TRACE 07] assistant.started / status update:', message);
+      }
+
+      if (msgType === 'transcript') {
+        const text =
+          typeof message === 'string'
+            ? message
+            : typeof message?.transcript === 'string'
+              ? message.transcript
+              : typeof message?.text === 'string'
+                ? message.text
+                : '';
+
+        const isFinal = transcriptType === 'final';
 
         if (role === 'user') {
-          console.log('[VAPI DEBUG] user transcript:', isFinal ? '[FINAL]' : '[INTERIM]', text);
+          console.log('[VAPI TRACE 10] user transcript:', text);
           if (isFinal) {
             console.log('[INTERVIEW TRANSCRIPT] candidate final:', text.trim());
           }
         } else if (role === 'assistant') {
-          console.log('[VAPI DEBUG] assistant transcript:', isFinal ? '[FINAL]' : '[INTERIM]', text);
+          console.log('[VAPI TRACE 09] assistant transcript:', text);
           if (isFinal) {
             console.log('[INTERVIEW TRANSCRIPT] assistant final:', text.trim());
           }
@@ -349,61 +385,108 @@ export default function LiveInterviewStudio({ currentUser, initialStream, interv
             }
           }
         }
+      } else if (msgType === 'error' || msgType === 'model-output' || msgType === 'status-update') {
+        console.log('[VAPI TRACE] OTHER MESSAGE:', msgType, message);
       }
     });
 
     vapi.on('error', (err) => {
-      console.warn('[VAPI DEBUG] error:', err);
-      const msg = typeof err === 'string' ? err : (err?.error?.message || err?.message || 'Voice connection notification');
-      if (msg && !msg.toLowerCase().includes('destroy') && !msg.toLowerCase().includes('aborted')) {
-        setVapiError('Voice Session Notice: ' + msg);
+      if (lifecycleId !== lifecycleIdRef.current) return;
+      const safeMsg = typeof err === 'string' ? err : (err?.error?.message || err?.message || JSON.stringify(err || {}));
+      console.warn('[VAPI TRACE ERROR]', safeMsg);
+      if (safeMsg && !safeMsg.toLowerCase().includes('destroy') && !safeMsg.toLowerCase().includes('aborted')) {
+        setVapiError('Voice Session Notice: ' + safeMsg);
       }
     });
 
-    // Dynamic Candidate Startup Variables
-    const candidateName = currentUser?.fullName || 'Candidate';
-    const candidateEmail = currentUser?.email || '';
-    const targetRole = interviewConfig?.targetRole || 'Software Development Engineer';
-    const interviewMode = interviewConfig?.mode || 'role_jd';
-    const difficulty = interviewConfig?.difficulty || 'Medium';
-    const resumeText = (interviewConfig?.resumeText || currentUser?.resumeText || '').slice(0, 1500);
-    const jobDescription = (interviewConfig?.jobDescription || '').slice(0, 1500);
-    const practiceRound = interviewConfig?.roundType || 'Technical';
-
-    const assistantOverrides = {
-      variableValues: {
-        candidateName,
-        candidateEmail,
-        targetRole,
-        interviewMode,
-        difficulty,
-        resumeText,
-        jobDescription,
-        practiceRound
-      }
+    // Dynamic Candidate Startup Variables with String Sanitization
+    const sanitizeVar = (str, maxLen = 800) => {
+      if (!str || typeof str !== 'string') return '';
+      return str
+        .replace(/[\r\n\t]+/g, ' ')
+        .replace(/["'\\]/g, '')
+        .replace(/[^\x20-\x7E]/g, '')
+        .trim()
+        .slice(0, maxLen);
     };
 
-    console.log('[VAPI PROD DEBUG] component = LiveInterviewStudio');
-    console.log('[VAPI PROD DEBUG] assistantId =', assistantId);
-    console.log('[VAPI PROD DEBUG] publicKeyPresent =', !!publicKey);
-    console.log('[VAPI PROD DEBUG] start count = 1 (guarded by isStartedRef)');
+    const candidateName = sanitizeVar(currentUser?.fullName || 'Candidate', 100);
+    const candidateEmail = sanitizeVar(currentUser?.email || '', 100);
+    const targetRole = sanitizeVar(interviewConfig?.targetRole || 'Software Development Engineer', 100);
+    const interviewMode = sanitizeVar(interviewConfig?.mode || 'role_jd', 50);
+    const difficulty = sanitizeVar(interviewConfig?.difficulty || 'Medium', 50);
+    const resumeText = sanitizeVar(interviewConfig?.resumeText || currentUser?.resumeText || '', 800);
+    const jobDescription = sanitizeVar(interviewConfig?.jobDescription || '', 800);
+    const practiceRound = sanitizeVar(interviewConfig?.roundType || 'Technical', 50);
+
+    const variableValues = {};
+    if (candidateName) variableValues.candidateName = candidateName;
+    if (candidateEmail) variableValues.candidateEmail = candidateEmail;
+    if (targetRole) variableValues.targetRole = targetRole;
+    if (interviewMode) variableValues.interviewMode = interviewMode;
+    if (difficulty) variableValues.difficulty = difficulty;
+    if (resumeText) variableValues.resumeText = resumeText;
+    if (jobDescription) variableValues.jobDescription = jobDescription;
+    if (practiceRound) variableValues.practiceRound = practiceRound;
+
+    const assistantOverrides = Object.keys(variableValues).length > 0 ? { variableValues } : undefined;
+
+    console.log('[VAPI TRACE] variable lengths:', {
+      candidateName: candidateName?.length || 0,
+      candidateEmail: candidateEmail?.length || 0,
+      targetRole: targetRole?.length || 0,
+      interviewMode: interviewMode?.length || 0,
+      difficulty: difficulty?.length || 0,
+      resumeText: resumeText?.length || 0,
+      jobDescription: jobDescription?.length || 0,
+      practiceRound: practiceRound?.length || 0
+    });
+
+    console.log('[VAPI TRACE] assistantOverrides:', {
+      hasOverrides: !!assistantOverrides,
+      variableKeys: Object.keys(variableValues)
+    });
+
+    console.log('[VAPI TRACE] microphone state:', {
+      isMicOn,
+      muted: !isMicOn,
+      hasInitialStream: !!initialStream,
+      audioTracks: initialStream ? initialStream.getAudioTracks().map(t => ({ id: t.id, enabled: t.enabled, readyState: t.readyState })) : []
+    });
+
+    console.log(`[VAPI TRACE 04] Calling vapi.start() | instance: ${instanceId} | lifecycleId: ${lifecycleId}`);
     // Start Vapi Call
-    vapi.start(assistantId, assistantOverrides).catch((err) => {
-      console.warn('[VAPI DEBUG] call start failed:', err);
+    vapi.start(assistantId, assistantOverrides).then((callObj) => {
+      console.log(`[VAPI TRACE 05] vapi.start() resolved | instance: ${instanceId} | lifecycleId: ${lifecycleId} | activeLifecycle: ${lifecycleIdRef.current}`);
+      if (lifecycleId !== lifecycleIdRef.current) {
+        console.warn(`[VAPI TRACE] async start completed for stale lifecycle ${lifecycleId}, stopping instance ${instanceId}`);
+        try { vapi.stop(); } catch (e) {}
+        return;
+      }
+      console.log(`[VAPI TRACE] active instance: ${instanceId}`);
+    }).catch((err) => {
+      if (lifecycleId !== lifecycleIdRef.current) return;
+      const safeErrMsg = typeof err === 'string' ? err : (err?.message || JSON.stringify(err || {}));
+      console.warn('[VAPI TRACE ERROR] call start failed:', safeErrMsg);
       setVapiError('Unable to start voice session. Please ensure your microphone permissions and internet connection are active.');
       setCallStatus('error');
     });
 
-    // Cleanup on component unmount ONLY
+    // Cleanup on component unmount
     return () => {
-      console.log('[VAPI DEBUG] cleaning up Vapi instance on unmount');
-      if (vapiRef.current) {
-        try {
-          vapiRef.current.removeAllListeners();
-          vapiRef.current.stop();
-        } catch (e) {}
+      console.log(`[VAPI TRACE] cleanup instance: ${instanceId} | lifecycleId: ${lifecycleId}`);
+      console.log('[VAPI TRACE] STOP CALLED', { lifecycleId, instanceId });
+      console.log('[VAPI TRACE] REMOVE LISTENERS', { lifecycleId, instanceId });
+
+      try {
+        vapi.removeAllListeners();
+        vapi.stop();
+      } catch (e) {}
+
+      if (vapiRef.current === vapi) {
         vapiRef.current = null;
       }
+      isStartedRef.current = false;
     };
   }, []);
 
