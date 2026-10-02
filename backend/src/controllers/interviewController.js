@@ -56,16 +56,18 @@ export const getNextAdaptiveQuestion = async (req, res, next) => {
 
 export const getReport = async (req, res, next) => {
   try {
-    const { sessionId, answersHistory = [], interviewConfig = {} } = req.body;
+    const { sessionId, answersHistory = [], interviewConfig = {}, codingMetrics = null } = req.body;
 
     console.log('[REPORT API] POST /api/interview/report called');
     console.log('[REPORT API] sessionId:', sessionId);
     console.log('[REPORT API] answersHistory entries:', answersHistory.length);
+    console.log('[REPORT API] codingMetrics:', codingMetrics);
 
     const result = await LangGraphInterviewService.generateFinalReport({
       sessionId,
       answersHistory,
       interviewConfig,
+      codingMetrics,
     });
 
     res.json({
@@ -115,6 +117,41 @@ export const getHistory = async (req, res, next) => {
     res.json({
       success: true,
       history,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const autosaveCodingSession = async (req, res, next) => {
+  try {
+    const { sessionId, codingState } = req.body;
+    if (!sessionId) {
+      return res.status(400).json({ success: false, message: 'Session ID is required' });
+    }
+    const saved = await InterviewModel.saveCodingSessionState(sessionId, codingState);
+    res.json({
+      success: true,
+      sessionId,
+      savedAt: new Date().toISOString(),
+      state: saved,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const restoreCodingSession = async (req, res, next) => {
+  try {
+    const { sessionId } = req.params;
+    const state = await InterviewModel.getCodingSessionState(sessionId);
+    if (!state) {
+      return res.status(404).json({ success: false, message: 'Session state not found' });
+    }
+    res.json({
+      success: true,
+      sessionId,
+      state,
     });
   } catch (error) {
     next(error);

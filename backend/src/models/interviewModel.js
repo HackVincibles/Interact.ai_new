@@ -18,6 +18,45 @@ export class InterviewModel {
     }
   }
 
+  // Memory cache for fast session recovery across restarts/refreshes
+  static codingSessionCache = new Map();
+
+  static async saveCodingSessionState(sessionId, codingState) {
+    const sessionData = {
+      ...codingState,
+      updatedAt: new Date().toISOString()
+    };
+    this.codingSessionCache.set(String(sessionId), sessionData);
+
+    try {
+      // Store in DB feedback / session column if postgres is active
+      const res = await dbPool.query(
+        'UPDATE interviews SET questions = $1 WHERE id = $2 RETURNING *',
+        [JSON.stringify(sessionData), sessionId]
+      );
+      return res.rows[0] || sessionData;
+    } catch (err) {
+      console.warn('Postgres query fallback (saveCodingSessionState):', err.message);
+      return sessionData;
+    }
+  }
+
+  static async getCodingSessionState(sessionId) {
+    const cached = this.codingSessionCache.get(String(sessionId));
+    if (cached) return cached;
+
+    try {
+      const res = await dbPool.query('SELECT questions FROM interviews WHERE id = $1', [sessionId]);
+      if (res.rows[0]?.questions) {
+        const parsed = typeof res.rows[0].questions === 'string' ? JSON.parse(res.rows[0].questions) : res.rows[0].questions;
+        return parsed;
+      }
+    } catch (err) {
+      console.warn('Postgres query fallback (getCodingSessionState):', err.message);
+    }
+    return null;
+  }
+
   static async getHistoryByUserId(userId) {
     try {
       const res = await dbPool.query(

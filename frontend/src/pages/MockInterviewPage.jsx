@@ -196,7 +196,7 @@ export default function MockInterviewPage({ currentUser, onNavigate, onInterview
     };
   }, [activeMediaStream]);
 
-  const handleFinishInterview = async ({ elapsedSeconds, transcript = [] }) => {
+  const handleFinishInterview = async ({ elapsedSeconds, transcript = [], codingMetrics = null }) => {
     let finalReport = null;
 
     // --- Transcript diagnostics ---
@@ -209,6 +209,7 @@ export default function MockInterviewPage({ currentUser, onNavigate, onInterview
     console.log('[INTERVIEW REPORT] Candidate responses:', candidateTurns.length);
     console.log('[INTERVIEW REPORT] Assistant responses:', interviewerTurns.length);
     console.log('[INTERVIEW REPORT] Transcript characters:', totalChars);
+    console.log('[INTERVIEW REPORT] Coding Metrics:', codingMetrics);
     console.log('[INTERVIEW REPORT] Interview ID:', currentSessionId || `SESSION_${Date.now()}`);
 
     if (transcript.length === 0) {
@@ -222,6 +223,7 @@ export default function MockInterviewPage({ currentUser, onNavigate, onInterview
         sessionId: activeId,
         interviewId: activeId,
         answersHistory: transcript,
+        codingMetrics,
         interviewConfig: {
           type: interviewConfig?.type,
           targetRole: interviewConfig?.targetRole,

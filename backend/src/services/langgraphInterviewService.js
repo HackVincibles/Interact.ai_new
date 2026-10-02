@@ -249,13 +249,16 @@ Return JSON format strictly:
    * @param {Array}  params.answersHistory - [{sender: 'interviewer'|'candidate', text, time}]
    * @param {object} [params.interviewConfig] - optional config with roundType, practiceMode etc.
    */
-  static async generateFinalReport({ sessionId, answersHistory = [], interviewConfig = {} }) {
+  static async generateFinalReport({ sessionId, answersHistory = [], interviewConfig = {}, codingMetrics = null }) {
     const candidateLines = answersHistory.filter(h => (h.sender === 'candidate' || h.role === 'user') && h.text?.trim());
     const totalChars = answersHistory.map(h => h.text || '').join('').length;
 
     console.log('[REPORT API] Received transcript entries:', answersHistory.length);
     console.log('[REPORT API] Candidate responses:', candidateLines.length);
     console.log('[REPORT API] Transcript characters:', totalChars);
+    if (codingMetrics) {
+      console.log('[REPORT API] Coding Metrics attached:', codingMetrics.problemTitle, `${codingMetrics.testsPassed}/${codingMetrics.totalTests} tests passed`);
+    }
 
     let practiceMode = interviewConfig?.practiceMode || 'full';
     let roundType = interviewConfig?.roundType || null;
@@ -283,7 +286,9 @@ Return JSON format strictly:
 
     const transcriptText = normalizedLines.join('\n');
 
-    if (normalizedLines.length === 0 || candidateLines.length === 0) {
+    const hasCodingMetrics = codingMetrics && typeof codingMetrics.testsPassed === 'number';
+
+    if (!hasCodingMetrics && (normalizedLines.length === 0 || candidateLines.length === 0)) {
       console.warn('[REPORT API] Transcript is empty — returning empty transcript error report');
       return {
         overallScore: null,
@@ -301,22 +306,35 @@ Return JSON format strictly:
 
     console.log('[REPORT AI] Preparing evaluation');
     console.log('[REPORT AI] Interview type:', interviewDomain || roundType || 'Technical');
-    console.log('[REPORT AI] Transcript entries:', normalizedLines.length);
-    console.log('[REPORT AI] Transcript characters:', transcriptText.length);
+
+    let codingContextBlock = '';
+    if (hasCodingMetrics) {
+      codingContextBlock = `
+Coding Problem Evaluation Context:
+- Problem: ${codingMetrics.problemTitle || 'Coding Problem'} (${codingMetrics.difficulty || 'Medium'})
+- Programming Language: ${codingMetrics.language || 'javascript'}
+- Deterministic Test Results: ${codingMetrics.testsPassed} Passed, ${codingMetrics.testsFailed} Failed out of ${codingMetrics.totalTests} Total Tests.
+- Total Run Count: ${codingMetrics.runCount || 1}
+- Submitted Candidate Solution Code:
+\`\`\`${codingMetrics.language || 'javascript'}
+${codingMetrics.codeContent || '// No code submitted'}
+\`\`\`
+`;
+    }
 
     const reportPrompt = `You are an expert AI Interviewer tasked with evaluating a candidate's interview performance.
 Interview Context: Domain="${interviewDomain || 'General'}", PracticeMode="${practiceMode}", RoundType="${roundType || 'General'}".
+${codingContextBlock}
 
 Evaluation instructions per round type:
 - If HR/General round: Evaluate communication, behavioral clarity, situational judgment, and relevance.
 - If Technical round: Evaluate domain knowledge, technical terminology accuracy, and logic.
-- If Coding round: Evaluate problem-solving approach, algorithmic thinking, and structural code breakdown.
+- If Coding round: Evaluate problem-solving approach, algorithmic efficiency, code readability, and discussion communication. Deterministic test results are already provided above — do NOT pretend to execute code; evaluate the qualitative clarity and approach.
 
-Evaluate the candidate's ACTUAL responses below. Do NOT use generic feedback. Reference specific details the candidate mentioned.
-If the transcript has fewer than 3 candidate turns, give appropriate scores reflecting the limited participation.
+Evaluate the candidate's ACTUAL responses and code submission below. Do NOT use generic feedback. Reference specific details the candidate mentioned.
 
 Interview Transcript:
-${transcriptText}
+${transcriptText || '(Coding session submitted with solution discussion)'}
 
 Return ONLY a single valid JSON object with EXACTLY this schema (no markdown, no explanation, just JSON):
 {
@@ -389,6 +407,10 @@ Return ONLY a single valid JSON object with EXACTLY this schema (no markdown, no
     console.log('[REPORT AI] Technical score:', report.technicalKnowledge);
     console.log('[REPORT AI] Communication score:', report.communication);
     console.log('[REPORT AI] Problem solving score:', report.problemSolving);
+
+    if (codingMetrics) {
+      report.codingMetrics = codingMetrics;
+    }
 
     // Persist to DB if a session ID is available
     if (sessionId) {
