@@ -551,6 +551,6 @@ Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for more informa
 ---
 
 <div align="center">
-  <p>Built with ❤️ by Team HackVincibles for Campus & Enterprise Innovation</p>
+  <p>Built with ❤️ by Team Invincibles for Campus & Enterprise Innovation</p>
 </div>
 
