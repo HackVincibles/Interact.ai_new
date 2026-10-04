@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Mail, Lock, Key, ArrowRight, AlertCircle } from 'lucide-react';
 import { signInWithGoogle } from '../services/firebase';
 import ResetPasswordFlow from '../components/ResetPasswordFlow';
+import AdminMaintenanceModal from '../components/AdminMaintenanceModal';
 import './LoginPage.css';
 
-export default function LoginPage({ onNavigate, onLoginSuccess, initialAdminMode = false }) {
-  const [isAdminMode, setIsAdminMode] = useState(initialAdminMode);
+export default function LoginPage({ onNavigate, onLoginSuccess, initialAdminMode = false, onShowAdminMaintenance }) {
+  const [isAdminMode, setIsAdminMode] = useState(false);
+  const [showAdminMaintenance, setShowAdminMaintenance] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -21,9 +23,10 @@ export default function LoginPage({ onNavigate, onLoginSuccess, initialAdminMode
 
   useEffect(() => {
     if (initialAdminMode) {
-      setIsAdminMode(true);
+      setShowAdminMaintenance(true);
+      if (onShowAdminMaintenance) onShowAdminMaintenance();
     }
-  }, [initialAdminMode]);
+  }, [initialAdminMode, onShowAdminMaintenance]);
 
   // 1-minute Lockout Countdown Timer
   useEffect(() => {
@@ -307,6 +310,11 @@ export default function LoginPage({ onNavigate, onLoginSuccess, initialAdminMode
         </div>
         )}
       </div>
+
+      <AdminMaintenanceModal 
+        isOpen={showAdminMaintenance} 
+        onClose={() => setShowAdminMaintenance(false)} 
+      />
     </div>
   );
 }

@@ -21,6 +21,7 @@ import OnboardingWizard from './components/OnboardingWizard';
 import LeaderboardModal from './components/LeaderboardModal';
 import StaticPage from './components/StaticPage';
 import AuthGuard from './components/AuthGuard';
+import AdminMaintenanceModal from './components/AdminMaintenanceModal';
 import { NotificationProvider } from './context/NotificationContext';
 import { auth, logOut as firebaseLogOut } from './services/firebase';
 import './index.css';
@@ -42,6 +43,7 @@ export default function App() {
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
   const [isAdminLoginActive, setIsAdminLoginActive] = useState(false);
+  const [isAdminMaintenanceOpen, setIsAdminMaintenanceOpen] = useState(false);
 
   // Student Profile: null when unauthenticated
   const [studentProfile, setStudentProfile] = useState(() => {
@@ -409,8 +411,7 @@ export default function App() {
             handleTabChange(tab);
           }} 
           onAdminLoginClick={() => {
-            setIsAdminLoginActive(true);
-            handleTabChange('login');
+            setIsAdminMaintenanceOpen(true);
           }}
         />
       )}
@@ -434,6 +435,12 @@ export default function App() {
         onClose={() => setIsLeaderboardOpen(false)}
         currentUser={studentProfile}
         onSelectUserProfile={(user) => alert(`Viewing public profile for ${user.name}`)}
+      />
+
+      {/* Admin Maintenance Modal */}
+      <AdminMaintenanceModal 
+        isOpen={isAdminMaintenanceOpen}
+        onClose={() => setIsAdminMaintenanceOpen(false)}
       />
     </div>
     </NotificationProvider>

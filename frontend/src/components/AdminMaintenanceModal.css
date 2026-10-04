@@ -1,0 +1,242 @@
+/* Admin Maintenance Modal Styles */
+
+.admin-maintenance-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(10, 10, 20, 0.78);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  padding: 20px;
+}
+
+.admin-maintenance-modal {
+  background: #0f121d;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 520px;
+  padding: 32px;
+  position: relative;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(239, 68, 68, 0.15);
+  animation: adminModalPopIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  color: #f1f5f9;
+}
+
+@keyframes adminModalPopIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.admin-maintenance-close-btn {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.admin-maintenance-close-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.4);
+  transform: rotate(90deg);
+}
+
+.admin-maintenance-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.admin-maintenance-icon-wrapper {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.icon-pulse-bg {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(239, 68, 68, 0.3);
+  animation: adminIconPulse 2s infinite;
+}
+
+@keyframes adminIconPulse {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.2;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+}
+
+.admin-maintenance-icon {
+  color: #ef4444;
+  filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.5));
+}
+
+.admin-maintenance-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #f59e0b;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.admin-maintenance-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 16px 0;
+  letter-spacing: -0.01em;
+}
+
+.admin-maintenance-message {
+  font-size: 0.98rem;
+  line-height: 1.6;
+  color: #cbd5e1;
+  margin-bottom: 24px;
+}
+
+.admin-maintenance-message strong {
+  color: #ef4444;
+}
+
+.admin-maintenance-warning-box {
+  width: 100%;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: left;
+  margin-bottom: 24px;
+}
+
+.warning-box-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.warning-icon {
+  color: #f59e0b;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.warning-box-item strong {
+  display: block;
+  font-size: 0.9rem;
+  color: #f8fafc;
+  margin-bottom: 2px;
+}
+
+.warning-box-item p {
+  font-size: 0.84rem;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.admin-maintenance-footer {
+  width: 100%;
+}
+
+.admin-maintenance-btn {
+  width: 100%;
+  padding: 14px 20px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.3);
+}
+
+.admin-maintenance-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(124, 58, 237, 0.45);
+}
+
+/* Light Theme overrides for modal if parent is in light mode */
+[data-theme='light'] .admin-maintenance-modal {
+  background: #ffffff;
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #1e293b;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25), 0 0 30px rgba(239, 68, 68, 0.12);
+}
+
+[data-theme='light'] .admin-maintenance-title {
+  color: #0f172a;
+}
+
+[data-theme='light'] .admin-maintenance-message {
+  color: #334155;
+}
+
+[data-theme='light'] .admin-maintenance-warning-box {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+[data-theme='light'] .warning-box-item strong {
+  color: #0f172a;
+}
+
+[data-theme='light'] .warning-box-item p {
+  color: #64748b;
+}
+
+[data-theme='light'] .admin-maintenance-close-btn {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #64748b;
+}

@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Check, X, ShieldCheck, Key, AlertCircle } from 'lucide-react';
 import { signInWithGoogle, signInWithGitHub } from '../services/firebase';
 import ResetPasswordFlow from './ResetPasswordFlow';
+import AdminMaintenanceModal from './AdminMaintenanceModal';
 import './AuthModal.css';
 
 export default function AuthModal({ initialMode = 'login', isOpen, onClose, onAuthSuccess }) {
-  const [mode, setMode] = useState(initialMode); // 'login', 'signup', 'admin'
+  const [mode, setMode] = useState(initialMode === 'admin' ? 'login' : initialMode); // 'login', 'signup', 'admin'
+  const [showAdminMaintenance, setShowAdminMaintenance] = useState(initialMode === 'admin');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
@@ -15,7 +17,12 @@ export default function AuthModal({ initialMode = 'login', isOpen, onClose, onAu
 
   // Sync internal mode state when initialMode changes externally
   useEffect(() => {
-    setMode(initialMode);
+    if (initialMode === 'admin') {
+      setMode('login');
+      setShowAdminMaintenance(true);
+    } else {
+      setMode(initialMode);
+    }
   }, [initialMode]);
 
   useEffect(() => {
@@ -373,6 +380,11 @@ export default function AuthModal({ initialMode = 'login', isOpen, onClose, onAu
         </div>
       </div>
       )}
+
+      <AdminMaintenanceModal 
+        isOpen={showAdminMaintenance} 
+        onClose={() => setShowAdminMaintenance(false)} 
+      />
     </div>
   );
 }
